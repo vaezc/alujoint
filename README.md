@@ -20,6 +20,8 @@ npm run build
 npm run preview
 ```
 
+`npm run build` 先跑 `tsc -b`，再把静态文件写到 `dist/`。托管时构建命令用 `npm run build`，发布目录用 `dist`。当前没有接 Vercel，这份仓库本身不上线。
+
 ## 网格
 
 `public/models/` 里的 GLB 来自已经下载的 STEP，用 cascadio 0.1.1 三角化后按 glTF 的米制写出。出处记在 `sources/`。
