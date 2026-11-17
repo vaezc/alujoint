@@ -1,0 +1,491 @@
+{
+  "study_id": "jlc-2020-batch3",
+  "created_local": "2026-11-17 11:38 (UTC+8)",
+  "purpose": "Convert four official Euro-20 fastener STEPs (T-bolt, DIN912 cap screw, wide washer, spring washer) to meter-unit GLB; record measured local axes for later manual placement and explode-along-install-direction. Data pack only.",
+  "units_note": "All STEP files use SI millimetre. GLB files are in meters (glTF convention): 0.010 m = 10 mm. For washers and the EDLA head, STEP VERTEX_POINT does not sample the full revolved solid, so the authoritative extent is the tessellated GLB mesh bbox (mm = bounds_m * 1000). Do not use VERTEX_POINT alone for EPDA/EPDB or for EDLA's Y extent.",
+  "valid_new_sku_count": 4,
+  "valid_new_skus": [
+    "TPBT-G-M5-L10",
+    "EDLA-S1-M4-L10",
+    "EPDA-S1W-K-4",
+    "EPDB-S1W-B1-4"
+  ],
+  "duplicate_not_added": [],
+  "sources": {
+    "t_bolt_product_page": "https://www.jlcfa.com/serial/2051658501549.html",
+    "cap_screw_product_page": "https://www.jlcfa.com/serial/2129403909149.html",
+    "flat_washer_product_page": "https://www.jlcfa.com/serial/1876808811244.html",
+    "spring_washer_product_page": "https://www.jlcfa.com/serial/2135521331445.html",
+    "corner_product_page": "https://www.jlcfa.com/serial/1562067181103.html",
+    "download_inbox": "/workspace/jlcfa_euro20_batch2_20261117/",
+    "download_readme": "evidence/README.txt",
+    "screenshots": [
+      "evidence/TYZC_fastener_example_diagram.png",
+      "evidence/EDLA_M4_L10_format.png",
+      "evidence/TPBT_G_M5_L10_format.png",
+      "evidence/TYZC_H6_selection.png"
+    ]
+  },
+  "official_example_diagram_vs_downloaded": {
+    "screenshot": "evidence/TYZC_fastener_example_diagram.png",
+    "left_exploded_labels_as_printed": [
+      "EDLG-S1-M4-L10",
+      "EPDB-S1W-B1-4",
+      "盖板",
+      "EPDA-S1W-K-4",
+      "TYZC-X6-206-2020G",
+      "TPAA-N-6-M4",
+      "TXCJ-H6-2020"
+    ],
+    "right_exploded_labels_as_printed": [
+      "EDLJ-S1-M5-L10",
+      "TYZC-N6-206-20A",
+      "TPAE-D-6-M5",
+      "TXCJ-H6-2020"
+    ],
+    "matches_this_batch": [
+      "EPDA-S1W-K-4",
+      "EPDB-S1W-B1-4"
+    ],
+    "not_the_same_sku": {
+      "downloaded": "EDLA-S1-M4-L10",
+      "diagram_left_label": "EDLG-S1-M4-L10",
+      "note": "Inbox README said the typc example labelled EDLA; the official screenshot itself prints EDLG-S1-M4-L10. Earlier official TYZC ZP accessory table listed EDLA-S1-M4-L10. These are different part numbers. EDLA is a valid official DIN912 cap-screw SKU from its own product page and may be used as a shape stand-in; do not say the typc 使用示例 screw was downloaded exactly."
+    },
+    "still_missing_for_that_figure": [
+      "EDLG-S1-M4-L10",
+      "盖板",
+      "TYZC-X6-206-2020G (this pack still uses the batch-1 H6 body)",
+      "TPAA-N-6-M4 (batch-2 has TPAA-D-6-M4 as a zinc-plated visual stand-in only)"
+    ]
+  },
+  "tpaa_finish_reminder": {
+    "official_tyzc_zp_lists": "TPAA-N-6-M4 (nickel)",
+    "downloaded_in_batch2": "TPAA-D-6-M4 (zinc)",
+    "allowed": "May be shown as a visualization stand-in for the T-nut shape.",
+    "forbidden": "Do not call a pack that uses TPAA-D the exact official ZP kit, and do not silently relabel D as N."
+  },
+  "additions": [
+    {
+      "key": "TPBT-G-M5-L10",
+      "sku": "TPBT-G-M5-L10",
+      "is_new_asset": true,
+      "kind": "single_solid",
+      "internal_product_name": "2076330136992727040",
+      "internal_solid_name": "TPBT-D-M5-L10-1-solid1",
+      "naming_mismatch": "Downloaded and selected on the page as TPBT-G-M5-L10 (镀铬). STEP FILE_NAME and PRODUCT are the numeric id 2076330136992727040. The solid name is TPBT-D-M5-L10-1-solid1 (D, not G). Asset file and GLB node are named from the page/download SKU TPBT-G-M5-L10. Do not treat the file as proven chrome-plated geometry distinct from a D body; only the page selection is G.",
+      "source_step": "raw/TPBT-G-M5-L10.step",
+      "source_step_original_filename": "TPBT-G-M5-L10嘉立创FA（www.jlcfa.com）.step",
+      "source_step_sha256": "258f51d95e4c8ea1f1925a5a23fbbe7f92b1bea4903c31c331d7979c6a01e814",
+      "source_step_bytes": 185429,
+      "step_header": {
+        "file_name_field": "2076330136992727040.step",
+        "timestamp_in_file_unspecified_tz": "2026-07-12T15:37:37",
+        "preprocessor": "FaSTEP 2.0",
+        "originating_system": "Forface 3D 2012",
+        "schema": "AUTOMOTIVE_DESIGN",
+        "protocol": "STEP AP214"
+      },
+      "units": "mm",
+      "nauo_count": 0,
+      "manifold_solid_count": 1,
+      "glb": "models/TPBT-G-M5-L10.glb",
+      "glb_bytes": 2357656,
+      "glb_sha256": "74ce41036582e0586a647d345e51c74d32a7dbc605553339eb1ecdb652173589",
+      "glb_note": "Cascadio produced a single mesh; the GLB is large (~2.36 MB, 50218 vertices) because the T-head region is densely tessellated. Node renamed from the numeric PRODUCT id to TPBT-G-M5-L10.",
+      "preview": "previews/TPBT-G-M5-L10.png",
+      "product_page": "https://www.jlcfa.com/serial/2051658501549.html",
+      "webpage_options": {
+        "family": "TPBT-G",
+        "surface": "镀铬",
+        "thread": "M5",
+        "length_L_mm": 10,
+        "listed_profile_series": "欧标20",
+        "slot_series_field_on_page": null
+      },
+      "fits": {
+        "profile_standard": "欧标20",
+        "slot_series_page_verified": false,
+        "note": "The product page states 适用型材系列：欧标20系列, and does not separately state 槽宽系列6. Measured T-head width is 6.000 mm (file Z, ±3.0). That is a geometry measurement, not page-level confirmation of slot series 6, and not a measured insertion into a TXCJ slot."
+      },
+      "geometry": {
+        "vertex_bbox_mm": {
+          "min": [
+            -5.0,
+            -3.2,
+            -3.0
+          ],
+          "max": [
+            5.0,
+            10.0,
+            3.0
+          ],
+          "size": [
+            10.0,
+            13.2,
+            6.0
+          ]
+        },
+        "glb_bbox_mm": {
+          "min": [
+            -5.0,
+            -3.2,
+            -3.0
+          ],
+          "max": [
+            5.0,
+            10.0,
+            3.0
+          ],
+          "size": [
+            10.0,
+            13.2,
+            6.0
+          ]
+        },
+        "scale_check": "GLB is meters; bounds*1000 match STEP millimetre vertex bbox exactly (10 x 13.2 x 6 mm).",
+        "measured_features_for_later_manual_mating": [
+          "Local shank/screw axis is the file Y axis. Tip at y=+10 mm; T-head toward negative Y.",
+          "Overall envelope 10.000 x 13.200 x 6.000 mm (file X/Y/Z).",
+          "T-head occupies y=-3.2 to about 0 (thickness 3.2 mm). Ends at |x|≈5 lie between about y=-1.40 and y=-0.08. Head length along X is 10.000 mm (±5); width along Z is 6.000 mm (±3).",
+          "M5 shank is a cylinder r=2.5 mm (Ø5) along Y. Mesh points in the r≈2.5 band occupy y=1.6 to y=9.5. Tip chamfer occupies y=9.5 to 10 (radius shrinks to about 2.25). Region y=0 to 1.6 is a wider transition (STEP also has a r=3.0 cylinder at y=1.6); this is measured, not an official shoulder callout.",
+          "Explode / install direction in file coordinates: along Y. Tip-first travel is toward +Y."
+        ]
+      },
+      "placement_axes_for_explode": {
+        "local_origin_mm": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "screw_axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "axis_note": "Unit direction from T-head toward the tip (file +Y).",
+        "tip_point_mm": [
+          0.0,
+          10.0,
+          0.0
+        ],
+        "thead_toward": [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        "not_a_verified_mate": true
+      }
+    },
+    {
+      "key": "EDLA-S1-M4-L10",
+      "sku": "EDLA-S1-M4-L10",
+      "is_new_asset": true,
+      "kind": "single_solid",
+      "internal_product_name": "EDLA-S1-M4-L10",
+      "internal_solid_name_note": "Solid name in the STEP is mojibake under GBK/UTF-8; PRODUCT name matches the SKU.",
+      "source_step": "raw/EDLA-S1-M4-L10.step",
+      "source_step_original_filename": "EDLA-S1-M4-L10嘉立创FA（www.jlcfa.com）.step",
+      "source_step_sha256": "c45c2dafc66235dc92fa9f0e589c7849bfb9a83c23a89b819169c78151f283bb",
+      "source_step_bytes": 46547,
+      "step_header": {
+        "file_name_field": "EDLA-S1-M4-L10.step",
+        "timestamp_in_file_unspecified_tz": "2026-07-03T08:53:51",
+        "preprocessor": "FaSTEP 2.0",
+        "originating_system": "Forface 3D 2012",
+        "schema": "AUTOMOTIVE_DESIGN",
+        "protocol": "STEP AP214"
+      },
+      "units": "mm",
+      "nauo_count": 0,
+      "manifold_solid_count": 1,
+      "glb": "models/EDLA-S1-M4-L10.glb",
+      "glb_bytes": 27704,
+      "glb_sha256": "131d645d19ac1b3decafb8389dfd0ac5bc56687e4c8e7c014a5c482f73d6337e",
+      "glb_nodes": {
+        "parent": "EDLA-S1-M4-L10",
+        "geometries": [
+          "EDLA-S1-M4-L10_body",
+          "EDLA-S1-M4-L10_feature_1"
+        ],
+        "note": "Cascadio split one STEP solid into a body mesh (full 14 x 7 x 7 mm) and a shank feature (x=-10 to -0.4, 9.6 x 4 x 4 mm, Ø4). The feature is parented under the SKU node. This is the same split pattern as the batch-2 T-nuts, not a second official part."
+      },
+      "preview": "previews/EDLA-S1-M4-L10.png",
+      "product_page": "https://www.jlcfa.com/serial/2129403909149.html",
+      "webpage_options": {
+        "standard": "DIN912",
+        "description": "内六角圆柱头螺钉",
+        "thread": "M4",
+        "length_L_mm": 10,
+        "thread_style": "全牙",
+        "material": "SUS304",
+        "property_class": "A2-70",
+        "surface": "无表面处理"
+      },
+      "do_not_confuse_with": {
+        "typc_usage_example_left": "EDLG-S1-M4-L10",
+        "typc_usage_example_right": "EDLJ-S1-M5-L10",
+        "earlier_tpdh_step_screw": "EDLG-S1-M6-L12",
+        "reason": "Different official part numbers and, in the typc figure, a different illustrated head/family. EDLA here is the DIN912 cap screw from its own page and from the earlier ZP table, not the EDLG callout printed on the typc 使用示例."
+      },
+      "geometry": {
+        "vertex_bbox_mm": {
+          "min": [
+            -14.0,
+            -1.732051,
+            -3.5
+          ],
+          "max": [
+            0.0,
+            1.732051,
+            3.5
+          ],
+          "size": [
+            14.0,
+            3.464102,
+            7.0
+          ]
+        },
+        "glb_bbox_mm": {
+          "min": [
+            -14.0,
+            -3.5,
+            -3.5
+          ],
+          "max": [
+            0.0,
+            3.5,
+            3.5
+          ],
+          "size": [
+            14.0,
+            7.0,
+            7.0
+          ]
+        },
+        "scale_check": "GLB is meters. Mesh bbox 14 x 7 x 7 mm. VERTEX_POINT understates Y (only ±1.732, the hex-socket vertices) because the Ø7 head circle is not fully sampled by VERTEX_POINT; use the mesh bbox.",
+        "measured_features_for_later_manual_mating": [
+          "Local screw axis is the file X axis. Socket/head face at x=-14 mm; tip at x=0 mm.",
+          "Head (points with YZ radius > 3.0 mm) occupies x=-14 to x=-10 (height 4.0 mm). Cylindrical head radius 3.5 mm (Ø7). Shank radius 2.0 mm (Ø4). Overall length 14.0 mm = 4 + 10, consistent with DIN912 M4 head plus L=10, as a measurement, not a standards-certificate claim.",
+          "Hex socket opens at x=-14. Measured hex circumradius 1.732 mm (across-flats 3.0 mm). Socket-like points extend to about x=-12 (measured depth ≈ 2.0 mm).",
+          "Shank/feature occupies about x=-10 to x=-0.4; tip chamfer occupies the last 0.4 mm to x=0.",
+          "Explode / install direction in file coordinates: along X. Tip-first insertion travels toward +X."
+        ]
+      },
+      "placement_axes_for_explode": {
+        "local_origin_mm": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "screw_axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "axis_note": "Unit direction from the socket/head face toward the tip (file +X).",
+        "head_socket_face_x_mm": -14.0,
+        "head_bearing_face_x_mm": -10.0,
+        "tip_x_mm": 0.0,
+        "not_a_verified_mate": true
+      }
+    },
+    {
+      "key": "EPDA-S1W-K-4",
+      "sku": "EPDA-S1W-K-4",
+      "is_new_asset": true,
+      "kind": "single_solid",
+      "internal_product_name": "EPDA-S1W-K-4",
+      "source_step": "raw/EPDA-S1W-K-4.step",
+      "source_step_original_filename": "EPDA-S1W-K-4嘉立创FA（www.jlcfa.com）.step",
+      "source_step_sha256": "6dac9f818e0813c0ecb24dc8681e01fe64b5f5bf7b5c69fa2cb39b93f2d32037",
+      "source_step_bytes": 15953,
+      "step_header": {
+        "file_name_field": "EPDA-S1W-K-4.step",
+        "timestamp_in_file_unspecified_tz": "2025-11-10T14:20:47",
+        "preprocessor": "FaSTEP 2.0",
+        "originating_system": "Forface 3D 2012",
+        "schema": "AUTOMOTIVE_DESIGN",
+        "protocol": "STEP AP214"
+      },
+      "units": "mm",
+      "nauo_count": 0,
+      "manifold_solid_count": 1,
+      "glb": "models/EPDA-S1W-K-4.glb",
+      "glb_bytes": 17060,
+      "glb_sha256": "188d3b5f6476af8fa1845b3b4b07f0f30d256af8c6b712c5b7fbc3135fb0f215",
+      "preview": "previews/EPDA-S1W-K-4.png",
+      "product_page": "https://www.jlcfa.com/serial/1876808811244.html",
+      "webpage_options": {
+        "standard": "DIN9021",
+        "description": "宽型平垫圈",
+        "for_thread": "M4",
+        "material": "SUS304",
+        "surface": "无表面处理"
+      },
+      "official_example": "Printed as EPDA-S1W-K-4 on the typc 使用示例 left exploded view (same SKU as this download).",
+      "geometry": {
+        "vertex_bbox_mm": {
+          "min": [
+            -6.0,
+            0.0,
+            0.0
+          ],
+          "max": [
+            6.0,
+            0.0,
+            1.0
+          ],
+          "size": [
+            12.0,
+            0.0,
+            1.0
+          ]
+        },
+        "glb_bbox_mm": {
+          "min": [
+            -6.0,
+            -6.0,
+            0.0
+          ],
+          "max": [
+            6.0,
+            6.0,
+            1.0
+          ],
+          "size": [
+            12.0,
+            12.0,
+            1.0
+          ]
+        },
+        "scale_check": "GLB is meters; mesh bbox 12 x 12 x 1 mm matches the STEP cylinder radii (outer r=6.0, inner r=2.15) and thickness z=0 to 1. VERTEX_POINT is incomplete (all vertices have y=0, on one diameter only) and must not be used as the solid AABB.",
+        "measured_features_for_later_manual_mating": [
+          "Hole axis is the file Z axis, centered at x=0, y=0.",
+          "Outer radius 6.0 mm (Ø12.0). Inner radius 2.15 mm (Ø4.30). Thickness 1.0 mm (z=0 to z=1).",
+          "Both faces are planar rings. No geometric evidence which face is 'up'.",
+          "Explode / stack direction in file coordinates: along Z."
+        ]
+      },
+      "placement_axes_for_explode": {
+        "local_origin_mm": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "hole_axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "face_z_mm": [
+          0.0,
+          1.0
+        ],
+        "inner_diameter_mm": 4.3,
+        "outer_diameter_mm": 12.0,
+        "thickness_mm": 1.0,
+        "not_a_verified_mate": true
+      }
+    },
+    {
+      "key": "EPDB-S1W-B1-4",
+      "sku": "EPDB-S1W-B1-4",
+      "is_new_asset": true,
+      "kind": "single_solid",
+      "internal_product_name": "EPDB-S1W-B1-4",
+      "source_step": "raw/EPDB-S1W-B1-4.step",
+      "source_step_original_filename": "EPDB-S1W-B1-4嘉立创FA（www.jlcfa.com）.step",
+      "source_step_sha256": "1049e43ee8531a08b92df644596f19628ae87d4dbd29632872018ffee9bf2a82",
+      "source_step_bytes": 25607,
+      "step_header": {
+        "file_name_field": "EPDB-S1W-B1-4.step",
+        "timestamp_in_file_unspecified_tz": "2025-12-21T06:20:46",
+        "preprocessor": "FaSTEP 2.0",
+        "originating_system": "Forface 3D 2012",
+        "schema": "AUTOMOTIVE_DESIGN",
+        "protocol": "STEP AP214"
+      },
+      "units": "mm",
+      "nauo_count": 0,
+      "manifold_solid_count": 1,
+      "glb": "models/EPDB-S1W-B1-4.glb",
+      "glb_bytes": 16940,
+      "glb_sha256": "ad91669e771e50252a85f23f9f224c77e710f69790875835a9df30d8ac15f163",
+      "preview": "previews/EPDB-S1W-B1-4.png",
+      "product_page": "https://www.jlcfa.com/serial/2135521331445.html",
+      "webpage_options": {
+        "standard": "DIN127",
+        "description": "标准型弹簧垫圈",
+        "for_thread": "M4",
+        "material": "SUS304",
+        "surface": "无表面处理"
+      },
+      "official_example": "Printed as EPDB-S1W-B1-4 on the typc 使用示例 left exploded view (same SKU as this download).",
+      "geometry": {
+        "vertex_bbox_mm": {
+          "min": [
+            -3.8,
+            0.0,
+            0.0
+          ],
+          "max": [
+            3.8,
+            1.117396,
+            0.9
+          ],
+          "size": [
+            7.6,
+            1.117396,
+            0.9
+          ]
+        },
+        "glb_bbox_mm": {
+          "min": [
+            -3.8,
+            -3.8,
+            -0.0
+          ],
+          "max": [
+            3.8,
+            3.797512,
+            0.9
+          ],
+          "size": [
+            7.6,
+            7.597512,
+            0.9
+          ]
+        },
+        "scale_check": "GLB is meters; mesh bbox about 7.60 x 7.60 x 0.90 mm matches cylinder radii (outer r=3.8, inner r=2.05) and thickness z=0 to 0.9. VERTEX_POINT is incomplete (Y only 0 to 1.117) and must not be used as the solid height or AABB.",
+        "measured_features_for_later_manual_mating": [
+          "Hole axis is the file Z axis, centered at x=0, y=0.",
+          "Outer radius 3.8 mm (Ø7.6). Inner radius 2.05 mm (Ø4.10). Mesh Z only has 0.0 and 0.9, so this official solid is a planar split ring of thickness 0.9 mm, not a 3D helical free-height spring. Do not invent a free height, working load, or torque from this file.",
+          "A split is visible in the mesh (about 10° of angular gap in the tessellation, near the +X side). That is a measured mesh gap, not a verified standard opening dimension. Slight Y-max shortfall (3.7975 vs 3.8) is consistent with the gap cutting a sliver of the ring.",
+          "Explode / stack direction in file coordinates: along Z."
+        ]
+      },
+      "placement_axes_for_explode": {
+        "local_origin_mm": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "hole_axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "face_z_mm": [
+          0.0,
+          0.9
+        ],
+        "inner_diameter_mm": 4.1,
+        "outer_diameter_mm": 7.6,
+        "thickness_mm": 0.9,
+        "shape_note": "Planar split ring in the official STEP/mesh; not a helical sprung solid.",
+        "not_a_verified_mate": true
+      }
+    }
+  ]
+}

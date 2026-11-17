@@ -1,0 +1,389 @@
+{
+  "study_id": "jlc-2020-study",
+  "purpose": "personal study sample pack: verify official STEP geometry and convert one real assembly to Web3D (GLB)",
+  "created_local": "2026-11-17 10:15 (UTC+8)",
+  "scope": "three already-downloaded official samples only; not a full catalog scrape",
+  "units_note": "All STEP files use SI millimetre. GLB files exported by cascadio are in meters (glTF convention): 0.020 m = 20 mm.",
+  "sources": {
+    "mall": "https://www.jlcfa.com/",
+    "profile_catalog": "https://www.jlcfa.com/catalog/T/T01",
+    "accessory_catalog": "https://www.jlcfa.com/catalog/T/T02",
+    "txcj_product_page": "https://www.jlcfa.com/serial/2021388190883.html",
+    "tyzc_product_page": "https://www.jlcfa.com/serial/1562067181103.html",
+    "tpdh_product_page": "https://www.jlcfa.com/serial/2162889907245.html",
+    "official_pdfs_in_raw": [
+      "TXCJ-欧标20-官方图档.pdf",
+      "TYZC-欧标20-压铸角座-官方图档.pdf",
+      "TPDH-欧标20-端面连接件-官方图档.pdf"
+    ]
+  },
+  "conversion": {
+    "tool": "cascadio 0.1.1 (OpenCASCADE) + trimesh 5.2.1 for hierarchy/name cleanup",
+    "meshing": {
+      "tol_linear_mm": 0.05,
+      "tol_angular_rad": 0.35
+    },
+    "verification": "Single-solid GLB bounds*1000 match STEP VERTEX_POINT bbox exactly (TXCJ, TYZC). TPDH assembled GLB bounds match STEP instance translations at 21 mm. Node NAUO1–4 and product names taken from the STEP file, not invented."
+  },
+  "parts": [
+    {
+      "key": "TXCJ",
+      "requested_filename": "TXCJ-H6-2020-L100嘉立创FA（www.jlcfa.com）.step",
+      "internal_product_name": "TXCJ-H6-2020-L100(嘉立创FA jlcfa.com)",
+      "internal_solid_name": "凸台-拉伸1",
+      "kind": "single_solid",
+      "source_step": "raw/TXCJ-H6-2020-L100嘉立创FA（www.jlcfa.com）.step",
+      "source_step_sha256": "d259f5eafed4466966bc5dc1356ea4e51e3237d2393aabb0a3ec426d16bc891c",
+      "source_step_bytes": 195104,
+      "step_header": {
+        "file_name_field": "TXCJ-H6-2020-L100(嘉立创FA jlcfa.com).step",
+        "timestamp_in_file_unspecified_tz": "2026-11-12T13:19:09",
+        "preprocessor": "FaSTEP 2.0",
+        "originating_system": "Forface 3D 2020",
+        "schema": "AUTOMOTIVE_DESIGN",
+        "protocol": "STEP AP214"
+      },
+      "units": "mm",
+      "glb": "models/TXCJ.glb",
+      "glb_bytes": 26716,
+      "preview": "previews/TXCJ.png",
+      "product_page": "https://www.jlcfa.com/serial/2021388190883.html",
+      "official_pdf": "raw/TXCJ-欧标20-官方图档.pdf",
+      "matches_series": "欧标20 / TXCJ-H6 / 2020 / L100",
+      "accessories_in_file": [],
+      "geometry": {
+        "vertex_bbox_mm": {
+          "min": [
+            0.0,
+            -20.0,
+            0.0
+          ],
+          "max": [
+            100.0,
+            0.0,
+            20.0
+          ],
+          "size": [
+            100.0,
+            20.0,
+            20.0
+          ]
+        },
+        "glb_bbox_mm": {
+          "min": [
+            0.0,
+            -20.0,
+            0.0
+          ],
+          "max": [
+            100.0,
+            0.0,
+            20.0
+          ],
+          "size": [
+            100.0,
+            20.0,
+            20.0
+          ]
+        },
+        "confirmed_from_step_and_pdf": [
+          "outer size 20 x 20 x 100 mm matches model code L100 and official section 20x20",
+          "cylindrical/circle radius 2.5 mm (Ø5) matches official section Ø5",
+          "fillet/circle radius 1.5 mm matches official section 4-R1.5"
+        ],
+        "pdf_only_not_remeasured_here": [
+          "slot width 6.2 mm is stated on the official slot detail; this pack does not include a separate jaw-to-jaw measurement",
+          "section callouts 6.1 / 7.8 appear among STEP vertex coordinates and on the PDF, but were not isolated as a formal feature measure"
+        ]
+      },
+      "glb_scene": {
+        "nodes": [
+          "world",
+          "TXCJ-H6-2020-L100",
+          "TXCJ-H6-2020-L100_body_node",
+          "TXCJ-H6-2020-L100_axial_R2.5_feature_node"
+        ],
+        "meshes": [
+          "TXCJ-H6-2020-L100_body",
+          "TXCJ-H6-2020-L100_axial_R2.5_feature"
+        ],
+        "note": "STEP has one MANIFOLD_SOLID_BREP and no assembly occurrences. cascadio emitted two mesh primitives; the smaller 100 x 5 x 5 mm primitive bbox matches the Ø5 axial hole, not a second product."
+      },
+      "evidence_level": {
+        "file_identity": "confirmed_from_step",
+        "outer_dimensions": "confirmed_from_step_and_official_pdf",
+        "center_hole_and_fillets": "confirmed_from_step_radii_and_official_pdf",
+        "slot_width_6.2": "official_pdf_only"
+      },
+      "unresolved": []
+    },
+    {
+      "key": "TYZC",
+      "requested_filename": "TYZC-H6-206-2020-ZP-OB嘉立创FA（www.jlcfa.com）.step",
+      "internal_product_name": "TYZC-H6-206-2020-DZ(嘉立创FA jlcfa.com)",
+      "internal_solid_name": "ABB11-206-2020",
+      "kind": "single_solid",
+      "source_step": "raw/TYZC-H6-206-2020-ZP-OB嘉立创FA（www.jlcfa.com）.step",
+      "source_step_sha256": "dec4c551ef2425942168a8af8bf593421a42b95d952f9570e75bb92d5c145e44",
+      "source_step_bytes": 241937,
+      "step_header": {
+        "file_name_field": "TYZC-H6-206-2020-DZ(嘉立创FA jlcfa.com).step",
+        "timestamp_in_file_unspecified_tz": "2026-09-10T06:27:37",
+        "preprocessor": "FaSTEP 2.0",
+        "originating_system": "Forface 3D 2012",
+        "schema": "AUTOMOTIVE_DESIGN",
+        "protocol": "STEP AP214"
+      },
+      "units": "mm",
+      "glb": "models/TYZC.glb",
+      "glb_bytes": 58816,
+      "preview": "previews/TYZC.png",
+      "product_page": "https://www.jlcfa.com/serial/1562067181103.html",
+      "official_pdf": "raw/TYZC-欧标20-压铸角座-官方图档.pdf",
+      "matches_series": "欧标20 / TYZC-H6 / 206 / 2020, but suffix is DZ not ZP",
+      "accessories_in_file": [],
+      "geometry": {
+        "vertex_bbox_mm": {
+          "min": [
+            -2.0,
+            -2.0,
+            -9.5
+          ],
+          "max": [
+            30.0,
+            30.0,
+            9.5
+          ],
+          "size": [
+            32.0,
+            32.0,
+            19.0
+          ]
+        },
+        "glb_bbox_mm": {
+          "min": [
+            -2.0,
+            -2.0,
+            -9.5
+          ],
+          "max": [
+            30.0,
+            30.0,
+            9.5
+          ],
+          "size": [
+            32.0,
+            32.0,
+            19.0
+          ]
+        },
+        "radii_mm_from_step": [
+          {
+            "radius": 2.65,
+            "implied_diameter": 5.3,
+            "role": "holes, not independently labelled on the extracted PDF text"
+          },
+          {
+            "radius": 1.5,
+            "role": "fillets"
+          },
+          {
+            "radius": 0.5,
+            "role": "small rounds"
+          }
+        ]
+      },
+      "glb_scene": {
+        "nodes": [
+          "world",
+          "TYZC-H6-206-2020-DZ"
+        ],
+        "meshes": [
+          "TYZC-H6-206-2020-DZ"
+        ]
+      },
+      "evidence_level": {
+        "file_identity": "confirmed_from_step_header_and_product_entity",
+        "bbox": "confirmed_from_step_and_glb",
+        "name_mismatch_vs_download": "confirmed_from_step",
+        "no_fasteners": "confirmed_from_step (1 PRODUCT, 0 NEXT_ASSEMBLY_USAGE_OCCURRENCE)",
+        "DZ_vs_standard_drawing": "unverified: official PDF describes TYZC-H6-206-2020 / optional SZ/DZ 去限位角; this file is the DZ variant and was not compared to a non-DZ solid"
+      },
+      "unresolved": [
+        "Download filename contains ZP-OB, but the STEP FILE_NAME and PRODUCT are TYZC-H6-206-2020-DZ, with no screws, T-nuts, or washers.",
+        "Official PDF ZP kit for this corner lists EDLA-S1-M4-L10, TPAA-N-6-M4, EPDA-S1W-K-4, EPDB-S1W-B1-4; none are in this file.",
+        "Meaning of OB in the download name was not verified on the product page.",
+        "This file cannot be used as an assembled corner-to-profile sample; it is the bracket body only."
+      ]
+    },
+    {
+      "key": "TPDH",
+      "requested_filename": "TPDH-206-T-ZP嘉立创FA（www.jlcfa.com）.step",
+      "internal_product_name": "TPDH-206-T-ZP(嘉立创FA jlcfa.com)",
+      "kind": "assembly",
+      "source_step": "raw/TPDH-206-T-ZP嘉立创FA（www.jlcfa.com）.step",
+      "source_step_sha256": "5264afa6bd78e46cd2e5e2bcbf96f26ce1fce5a57ea071e08db1908f27c495f5",
+      "source_step_bytes": 200549,
+      "step_header": {
+        "file_name_field": "TPDH-206-T-ZP(嘉立创FA jlcfa.com).step",
+        "timestamp_in_file_unspecified_tz": "2026-08-28T14:23:57",
+        "preprocessor": "FaSTEP 2.0",
+        "originating_system": "Forface 3D 2012",
+        "schema": "AUTOMOTIVE_DESIGN",
+        "protocol": "STEP AP214"
+      },
+      "units": "mm",
+      "glb": "models/TPDH.glb",
+      "glb_bytes": 92432,
+      "preview": "previews/TPDH.png",
+      "product_page": "https://www.jlcfa.com/serial/2162889907245.html",
+      "official_pdf": "raw/TPDH-欧标20-端面连接件-官方图档.pdf",
+      "matches_series": "欧标20 / TPDH-206-T / ZP kit",
+      "accessories_in_file": [
+        {
+          "component": "TPDH-T",
+          "step_product": "复件 TPDH^2093343614562189312_TPDH-T",
+          "occurrence": "NAUO1",
+          "translation_mm": [
+            0,
+            0,
+            0
+          ],
+          "local_bbox_mm": {
+            "size": [
+              22.0,
+              22.0,
+              22.0
+            ],
+            "min": [
+              -12.0,
+              -12.0,
+              -12.0
+            ],
+            "max": [
+              10.0,
+              10.0,
+              10.0
+            ]
+          }
+        },
+        {
+          "component": "EDLG-S1-M6-L12",
+          "step_product": "复件 EDLG-S1-M6-L12（嘉立创jlcfa.com）^2093343614562189312",
+          "instances": [
+            {
+              "occurrence": "NAUO2",
+              "translation_mm": [
+                -21.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "occurrence": "NAUO3",
+              "translation_mm": [
+                0.0,
+                0.0,
+                -21.0
+              ]
+            },
+            {
+              "occurrence": "NAUO4",
+              "translation_mm": [
+                0.0,
+                -21.0,
+                0.0
+              ]
+            }
+          ],
+          "local_bbox_mm": {
+            "size": [
+              15.3,
+              10.5,
+              10.5
+            ],
+            "min": [
+              -15.3,
+              -5.25,
+              -5.25
+            ],
+            "max": [
+              0.0,
+              5.25,
+              5.25
+            ]
+          },
+          "note": "Rotations are stored on the GLB/STEP occurrence matrices (30°/60° terms: 0.5 and 0.866025). These are placements inside the TPDH kit, not mate constraints to a TXCJ profile."
+        }
+      ],
+      "geometry": {
+        "step_vertex_bbox_mm_local_union_only": {
+          "size": [
+            25.3,
+            22.0,
+            22.0
+          ],
+          "note": "Untransformed union of local solids; do not use as assembled size."
+        },
+        "assembled_bbox_mm": {
+          "min": [
+            -21.0,
+            -21.0,
+            -21.0
+          ],
+          "max": [
+            10.0,
+            10.0,
+            10.0
+          ],
+          "size": [
+            31.0,
+            31.0,
+            31.0
+          ]
+        },
+        "confirmed_from_step_and_pdf": [
+          "connector circles/cylinders include r=6.0 (Ø12) and r=3.5 (Ø7), matching official TPDH drawing callouts",
+          "fastener overall length 15.3 mm equals 12 + 3.3, consistent with an M6x12 countersunk head height of 3.3 mm; head bounding box 10.5 mm matches r=5.25",
+          "official ZP option on the same PDF lists 沉头螺钉 EDLG-S1-M6-L12"
+        ]
+      },
+      "edlj_vs_edlg": {
+        "step_and_this_download": "EDLG-S1-M6-L12, three instances",
+        "official_pdf_usage_example": "EDLJ-S1-M6-L12 drawn next to TPDH-206-T / TPDH-206-B",
+        "official_pdf_ZP_option": "EDLG-S1-M6-L12 (example line also has a typo TPDD-206-B-ZP)",
+        "conclusion": "This ZP STEP follows the PDF ZP accessory line (EDLG), not the illustration code (EDLJ). Whether EDLG and EDLJ are the same part was not verified; no EDLJ solid is in this pack."
+      },
+      "glb_scene": {
+        "nodes": [
+          "world",
+          "TPDH-206-T-ZP",
+          "NAUO1",
+          "NAUO2",
+          "NAUO3",
+          "NAUO4"
+        ],
+        "hierarchy": "TPDH-206-T-ZP / {NAUO1: TPDH-T, NAUO2-4: EDLG-S1-M6-L12 x3}",
+        "unique_solids_in_step": 2,
+        "instances": 4
+      },
+      "evidence_level": {
+        "assembly_hierarchy": "confirmed_from_step",
+        "screw_positions": "confirmed_from_step_ITEM_DEFINED_TRANSFORMATION_and_glb_nodes",
+        "fastener_code": "confirmed_from_step_product_name",
+        "profile_mating": "not_in_file",
+        "decorative_cover": "not_found_as_a_product_in_this_step"
+      },
+      "unresolved": [
+        "Official usage drawing shows a 装饰盖; this STEP has only the connector body and three screws.",
+        "No TXCJ profile is included in this assembly, so end-face insertion / hole alignment with a profile is not verified.",
+        "EDLJ vs EDLG difference is unresolved."
+      ]
+    }
+  ],
+  "not_inferred": [
+    "No load ratings or strength claims.",
+    "No invented mate constraints between the corner bracket or end connector and the 2020 profile.",
+    "Machining coordinates for hidden connectors or end tapping are not taken from these three files."
+  ]
+}
