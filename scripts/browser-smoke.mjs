@@ -101,6 +101,107 @@ async function shot(send, file) {
   console.log("shot", file)
 }
 
+const frameReport = `(() => {
+  const canvas = document.querySelector("canvas")
+  if (!canvas) return { error: "没有画布" }
+  const resources = performance.getEntriesByType("resource").map((entry) => entry.name)
+  const fiberUrl = resources.find((name) => name.includes("@react-three_fiber") || name.includes("react-three-fiber"))
+  if (!fiberUrl) return { error: "没有找到 fiber 模块" }
+  return import(fiberUrl).then((fiber) => {
+    const root = fiber._roots.get(canvas)
+    if (!root) return { error: "场景还没有挂上" }
+    const { scene, camera } = root.store.getState()
+    scene.updateMatrixWorld(true)
+    let Vector3 = null
+    const meshes = []
+    scene.traverse((object) => {
+      if (!object.isMesh || !object.geometry || !object.name) return
+      object.geometry.computeBoundingBox()
+      if (!object.geometry.boundingBox) return
+      Vector3 = object.position.constructor
+      const box = object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld)
+      const size = box.getSize(new Vector3())
+      if (Math.max(size.x, size.y, size.z) > 300) return
+      meshes.push({ name: object.name, box })
+    })
+    if (!Vector3 || meshes.length < 8) return { error: "零件网格还没到齐", count: meshes.length }
+    const canvasRect = canvas.getBoundingClientRect()
+    let visibleTop = canvasRect.top
+    let visibleBottom = canvasRect.bottom
+    const main = canvas.closest("main")
+    if (main) {
+      for (const child of main.children) {
+        if (child.contains(canvas)) continue
+        const rect = child.getBoundingClientRect()
+        if (rect.width < 8 || rect.height < 8) continue
+        if (rect.top <= canvasRect.top + 8 && rect.bottom > canvasRect.top) visibleTop = Math.max(visibleTop, rect.bottom)
+        if (rect.bottom >= canvasRect.bottom - 8 && rect.top < canvasRect.bottom) visibleBottom = Math.min(visibleBottom, rect.top)
+      }
+    }
+    const margin = 6
+    const violations = []
+    for (const mesh of meshes) {
+      const { min, max } = mesh.box
+      const corners = []
+      for (const x of [min.x, max.x]) {
+        for (const y of [min.y, max.y]) {
+          for (const z of [min.z, max.z]) {
+            const point = new Vector3(x, y, z).project(camera)
+            corners.push({
+              sx: canvasRect.left + ((point.x + 1) / 2) * canvasRect.width,
+              sy: canvasRect.top + ((1 - point.y) / 2) * canvasRect.height,
+              ndc: Math.max(Math.abs(point.x), Math.abs(point.y)),
+            })
+          }
+        }
+      }
+      const clipped = corners.filter((corner) => (
+        corner.sx < canvasRect.left + margin
+        || corner.sx > canvasRect.right - margin
+        || corner.sy < visibleTop + margin
+        || corner.sy > visibleBottom - margin
+        || corner.ndc > 1
+      ))
+      if (clipped.length) {
+        violations.push({
+          name: mesh.name,
+          clipped: clipped.length,
+          sy: [Math.min(...corners.map((corner) => corner.sy)), Math.max(...corners.map((corner) => corner.sy))],
+        })
+      }
+    }
+    return {
+      violations,
+      meshCount: meshes.length,
+      visibleTop,
+      visibleBottom,
+      canvasTop: canvasRect.top,
+      canvasBottom: canvasRect.bottom,
+    }
+  })
+})()`
+
+async function assertFramed(send, label) {
+  const report = await evaluate(send, frameReport)
+  if (!report || report.error) {
+    fail(`${label}无法测量取景：${report?.error ?? "empty"}`)
+    return
+  }
+  if (report.violations.length) {
+    const names = report.violations.map((item) => `${item.name}(${item.clipped})`).join(", ")
+    fail(`${label}有零件超出可见区域：${names}；可见 ${report.visibleTop.toFixed(0)}–${report.visibleBottom.toFixed(0)}，画布 ${report.canvasTop.toFixed(0)}–${report.canvasBottom.toFixed(0)}`)
+  } else {
+    console.log(`FRAME_OK ${label} meshes=${report.meshCount}`)
+  }
+}
+
+async function clickText(send, text) {
+  await evaluate(
+    send,
+    `document.querySelectorAll("button").forEach((button) => { if (button.textContent.trim() === ${JSON.stringify(text)}) button.click() })`,
+  )
+}
+
 try {
   const target = await page()
   const send = await connect(target.webSocketDebuggerUrl)
@@ -121,6 +222,46 @@ try {
   if (!openBox || openBox.x < 90 || openBox.x > 150 || openBox.y < 90 || openBox.y > 150 || openBox.z > 40) {
     fail(`角部合拢不像靠在一起的两根型材：${opening.match(/包围盒[^\n]+/)?.[0] ?? "missing"}`)
   }
+  await send("Emulation.setDeviceMetricsOverride", {
+    width: 1440,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: false,
+  })
+  await clickText(send, "合拢")
+  await clickText(send, "取景")
+  await new Promise((resolve) => setTimeout(resolve, 600))
+  await assertFramed(send, "合拢")
+  await clickText(send, "拉开")
+  await new Promise((resolve) => setTimeout(resolve, 700))
+  const fullExplode = await evaluate(send, `document.querySelector('input[aria-label="爆炸程度"]').value`)
+  if (Number(fullExplode) !== 100) fail(`整组没有拉到 100%：${fullExplode}`)
+  const explodedBounds = readBox(await evaluate(send, "document.body.innerText"))
+  if (!explodedBounds || explodedBounds.x < 160 || explodedBounds.y < 150) {
+    fail(`100% 爆炸包围盒没有拉开长型材：${JSON.stringify(explodedBounds)}`)
+  }
+  await assertFramed(send, "100%爆炸")
+  await send("Emulation.setDeviceMetricsOverride", {
+    width: 1440,
+    height: 900,
+    deviceScaleFactor: 2,
+    mobile: false,
+  })
+  await clickText(send, "合拢")
+  await clickText(send, "取景")
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  await shot(send, "/tmp/desktop-joint-collapsed.png")
+  await clickText(send, "拉开")
+  await new Promise((resolve) => setTimeout(resolve, 700))
+  await shot(send, "/tmp/desktop-joint-exploded.png")
+  await send("Emulation.setDeviceMetricsOverride", {
+    width: 1440,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: false,
+  })
+  await clickText(send, "合拢")
+  await new Promise((resolve) => setTimeout(resolve, 300))
   await evaluate(
     send,
     `document.querySelectorAll("button").forEach((button) => { if (button.textContent.trim() === "播放") button.click() })`,

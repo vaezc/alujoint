@@ -118,6 +118,7 @@ function Stage({ sample, explodeRef, selection, frameToken, onSelect, onBounds }
   const inner = useRef<Group>(null)
   const controls = useRef<OrbitControlsImpl>(null)
   const camera = useThree((state) => state.camera)
+  const gl = useThree((state) => state.gl)
   const [lift, setLift] = useState(0)
   const pendingFrame = useRef(true)
   const seenMeshes = useRef(0)
@@ -152,12 +153,13 @@ function Stage({ sample, explodeRef, selection, frameToken, onSelect, onBounds }
         seenMeshes.current = meshCount
         pendingFrame.current = true
       }
-      if (!pendingFrame.current || !orbit || !(camera instanceof PerspectiveCamera)) return
+      const canvas = gl.domElement
+      if (!pendingFrame.current || !orbit || !(camera instanceof PerspectiveCamera) || !(canvas instanceof HTMLCanvasElement)) return
       pendingFrame.current = false
-      frameObject(camera, orbit, target)
+      frameObject(camera, orbit, target, canvas)
     })
     return () => cancelAnimationFrame(frame)
-  }, [camera, frameToken, lift, onBounds, sample.id])
+  }, [camera, frameToken, gl, lift, onBounds, sample.id])
 
   return (
     <>
@@ -201,7 +203,7 @@ function Stage({ sample, explodeRef, selection, frameToken, onSelect, onBounds }
         enableDamping
         dampingFactor={0.14}
         minDistance={28}
-        maxDistance={1200}
+        maxDistance={8000}
       />
     </>
   )
@@ -433,22 +435,56 @@ function localBox(object: Object3D): Box3 {
   return box
 }
 
+function overlayInsets(canvas: HTMLCanvasElement): { top: number; bottom: number } {
+  const canvasRect = canvas.getBoundingClientRect()
+  const main = canvas.closest("main")
+  if (!main || canvasRect.height < 1) return { top: 0, bottom: 0 }
+  let top = 0
+  let bottom = 0
+  for (const child of main.children) {
+    if (!(child instanceof HTMLElement) || child.contains(canvas)) continue
+    const rect = child.getBoundingClientRect()
+    if (rect.width < 8 || rect.height < 8) continue
+    if (rect.bottom <= canvasRect.top || rect.top >= canvasRect.bottom) continue
+    if (rect.top <= canvasRect.top + 8) top = Math.max(top, rect.bottom - canvasRect.top)
+    if (rect.bottom >= canvasRect.bottom - 8) bottom = Math.max(bottom, canvasRect.bottom - rect.top)
+  }
+  return {
+    top: clampInset(top, canvasRect.height),
+    bottom: clampInset(bottom, canvasRect.height),
+  }
+}
+
+function clampInset(inset: number, height: number): number {
+  if (!Number.isFinite(inset) || inset <= 0) return 0
+  return Math.min(inset, height * 0.45)
+}
+
 function frameObject(
   camera: PerspectiveCamera,
   controls: OrbitControlsImpl,
   object: Object3D,
+  canvas: HTMLCanvasElement,
 ): BoundsMm | null {
   const box = new Box3().setFromObject(object)
   if (box.isEmpty()) return null
   const size = box.getSize(new Vector3())
   const center = box.getCenter(new Vector3())
-  const radius = Math.max(size.x, size.y, size.z) * 0.62
-  const fov = (camera.fov * Math.PI) / 180
-  const distance = radius / Math.sin(fov / 2)
+  const radius = Math.max(Math.hypot(size.x, size.y, size.z) * 0.5, 1)
+  const width = Math.max(canvas.clientWidth, 1)
+  const height = Math.max(canvas.clientHeight, 1)
+  const { top, bottom } = overlayInsets(canvas)
+  const halfHeight = height / 2
+  const verticalRoom = Math.max(32, Math.min(halfHeight - top, halfHeight - bottom))
+  const verticalHalf = ((camera.fov * Math.PI) / 180) / 2
+  const aspect = Math.max(camera.aspect > 0 ? camera.aspect : width / height, 0.05)
+  const fittedVertical = Math.atan(Math.tan(verticalHalf) * (verticalRoom / halfHeight))
+  const fittedHorizontal = Math.atan(Math.tan(verticalHalf) * aspect)
+  const distance = (radius * 1.12) / Math.max(Math.sin(Math.min(fittedVertical, fittedHorizontal)), 0.02)
   const direction = new Vector3(0.78, 0.48, 0.95).normalize()
   camera.position.copy(center).addScaledVector(direction, distance)
   camera.near = Math.max(0.2, distance / 300)
-  camera.far = distance * 30
+  camera.far = Math.max(distance * 30, radius * 40)
   camera.updateProjectionMatrix()
   controls.target.copy(center)
   controls.update()
