@@ -41,3 +41,51 @@ npm run preview
 ## 页面上能做的事
 
 左侧检索和筛选，点一条就载入视图。拖拽旋转，右键平移，滚轮缩放。取景和复位在视图下方，也可以按 `F` 和 `R`。端面连接件可以按 NAUO 点选，并用滑杆把三颗螺钉沿实例轴拉开。
+
+## 当前进度与交接（2026-11-17）
+
+目标：把嘉立创欧标铝型材全系列的型材与连接件做成 3D 可视化目录。这一步做的是「抓取 → STEP → GLB → 数据」管线，前端尚未接入。
+
+### 已完成
+
+- 枚举「铝型材及配件」12 大类 / 108 子分类，得到 **407 个产品系列**（serial）。
+- 用登录态走官方接口下载 STEP：**363 个成功**（44 个失败，约 11%）。
+- cascadio 0.1.1 转 GLB：**362 个成功**（1 个 C++ `double free` 崩溃），共约 **98MB**，在 `public/models/`。
+- 生成 `public/data/catalog.generated.json`（362 条，含分类 / 型号 / 包围盒 / 网格数）。
+
+### 下载 STEP 的接口链路
+
+1. `POST /api/fa-platform/web/detail-page/selection/serial-lite`（带 `X-XSRF-TOKEN`，值取自 cookie）→ 返回 `productModel`、`productCodeAccessId`。
+   - 选型规则：每个参数取首个可选值；型材多一个输入型 `L`（`paramRange`），统一取 `100`。
+2. `POST /api/faMall/threed/requestModel`（`isDownloadRequest:1, modelType:"step"`）→ `requestKey`。
+3. `GET /api/faMall/threed/getStatus?requestKey=` → `built_file.url`（Forface OSS 签名地址，需轮询到 `status:1`）。
+4. `GET /api/faMall/threed/modelDownload?requestKey=&url=&fName=&fType=step` → STEP 文件。
+
+补充：产品页是 SSR + JS 反爬（curl 拿到的是加密挑战页，要用真浏览器渲染）；`/category/` 页是干净 SSR，可直接 curl（内含 JSON-LD 分类树）。
+
+### 产物与中间数据
+
+- `scripts/pipeline/`：管线脚本 —— `crawl_cats.py`（分类树）、`enum_all.mjs`（list 页翻页枚举 serial）、`batch_download.mjs`（下载 STEP）、`batch_convert2.py` + `convert_one.py`（STEP→GLB，逐件子进程隔离崩溃）、`gen_catalog.py`（生成数据）、`requirements.txt`。
+- `sources/pipeline/`：中间数据 —— `cat_tree.json`、`serials.jsonl`、`glb_meta.jsonl`、`all_ok.jsonl`、下载记录。
+- `sources/raw/`：原始 STEP（约 218MB），已在 `.gitignore`，只留在本地。
+- 登录 cookie 在 `~/.cache/alujoint-jlc/cookies.json`，不进仓库。
+
+### 如何继续
+
+1. 依赖：`python3 -m venv venv && venv/bin/pip install -r scripts/pipeline/requirements.txt`。
+2. 下载：先启动带登录态的 Chrome 并导出 cookie 到上述路径，再 `node scripts/pipeline/batch_download.mjs <outDir> <result.jsonl> <serial列表.txt> <port> <profile>`。脚本里部分路径是当时写死的，按需改。
+3. 转换：`venv/bin/python scripts/pipeline/batch_convert2.py <all_ok.jsonl> public/models sources/pipeline/glb_meta.jsonl`。
+4. 生成：`python3 scripts/pipeline/gen_catalog.py`（输出 `public/data/catalog.generated.json`）。
+
+### 已知问题 / 待办
+
+- **44 个下载失败**：多为 `no built_file`（getStatus 30 秒内没出结果，可加长轮询）和 `no productModel`（TDB / TYZ 等系列选型规则不同）。清单在 `sources/pipeline/`。
+- **1 个转换崩溃**：`LC-AEG15-5065-XL90`（cascadio `double free`，需换网格参数或换工具）。
+- **前端未接入**：`App` / `CatalogList` / `Viewport` 仍只读手写 `samples`；`Viewport` 预加载了 9 个固定 GLB，需改成按需加载任意 GLB。
+- **98MB 未压缩**：上线前建议 Draco / meshopt 压缩。
+- **爆炸方向（第 2 条）未做**：计划读 GLB 节点层级自动推导 `explodeMm`。
+
+### 注意
+
+- 抓取依赖登录态，且站点 `robots.txt` 禁 `/api/` 和 `?` 参数；仅个人研究用途。cookie 是敏感凭据，不提交、不外传。
+- 按 `docs/工作约定.md`：只推 `github.com/vaezc/alujoint`，不 force-push。本次仅本地提交，未推送。
