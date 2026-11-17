@@ -39,6 +39,16 @@ useGLTF.preload("/models/EPDA-S1W-K-4.glb")
 useGLTF.preload("/models/EPDB-S1W-B1-4.glb")
 useGLTF.preload("/models/TPBT-G-M5-L10.glb")
 
+declare global {
+  interface Window {
+    __ALUJOINT_FRAME__?: {
+      root: Object3D
+      camera: PerspectiveCamera
+      canvas: HTMLCanvasElement
+    }
+  }
+}
+
 const emptyLabels: Record<string, string> = {}
 
 const nodeLabelsByUrl: Record<string, Record<string, string>> = {}
@@ -157,6 +167,7 @@ function Stage({ sample, explodeRef, selection, frameToken, onSelect, onBounds }
       if (!pendingFrame.current || !orbit || !(camera instanceof PerspectiveCamera) || !(canvas instanceof HTMLCanvasElement)) return
       pendingFrame.current = false
       frameObject(camera, orbit, target, canvas)
+      window.__ALUJOINT_FRAME__ = { root: target, camera, canvas }
     })
     return () => cancelAnimationFrame(frame)
   }, [camera, frameToken, gl, lift, onBounds, sample.id])

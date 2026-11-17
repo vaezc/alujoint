@@ -102,83 +102,76 @@ async function shot(send, file) {
 }
 
 const frameReport = `(() => {
-  const canvas = document.querySelector("canvas")
-  if (!canvas) return { error: "没有画布" }
-  const resources = performance.getEntriesByType("resource").map((entry) => entry.name)
-  const fiberUrl = resources.find((name) => name.includes("@react-three_fiber") || name.includes("react-three-fiber"))
-  if (!fiberUrl) return { error: "没有找到 fiber 模块" }
-  return import(fiberUrl).then((fiber) => {
-    const root = fiber._roots.get(canvas)
-    if (!root) return { error: "场景还没有挂上" }
-    const { scene, camera } = root.store.getState()
-    scene.updateMatrixWorld(true)
-    let Vector3 = null
-    const meshes = []
-    scene.traverse((object) => {
-      if (!object.isMesh || !object.geometry || !object.name) return
-      object.geometry.computeBoundingBox()
-      if (!object.geometry.boundingBox) return
-      Vector3 = object.position.constructor
-      const box = object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld)
-      const size = box.getSize(new Vector3())
-      if (Math.max(size.x, size.y, size.z) > 300) return
-      meshes.push({ name: object.name, box })
-    })
-    if (!Vector3 || meshes.length < 8) return { error: "零件网格还没到齐", count: meshes.length }
-    const canvasRect = canvas.getBoundingClientRect()
-    let visibleTop = canvasRect.top
-    let visibleBottom = canvasRect.bottom
-    const main = canvas.closest("main")
-    if (main) {
-      for (const child of main.children) {
-        if (child.contains(canvas)) continue
-        const rect = child.getBoundingClientRect()
-        if (rect.width < 8 || rect.height < 8) continue
-        if (rect.top <= canvasRect.top + 8 && rect.bottom > canvasRect.top) visibleTop = Math.max(visibleTop, rect.bottom)
-        if (rect.bottom >= canvasRect.bottom - 8 && rect.top < canvasRect.bottom) visibleBottom = Math.min(visibleBottom, rect.top)
-      }
+  const probe = window.__ALUJOINT_FRAME__
+  if (!probe) return { error: "取景探针还没有挂上" }
+  const { root, camera, canvas } = probe
+  root.updateWorldMatrix(true, true)
+  let Vector3 = null
+  const meshes = []
+  root.traverse((object) => {
+    if (!object.isMesh || !object.geometry || !object.name) return
+    object.geometry.computeBoundingBox()
+    if (!object.geometry.boundingBox) return
+    Vector3 = object.position.constructor
+    const box = object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld)
+    const size = box.getSize(new Vector3())
+    if (Math.max(size.x, size.y, size.z) > 300) return
+    meshes.push({ name: object.name, box })
+  })
+  if (!Vector3 || meshes.length < 8) return { error: "零件网格还没到齐", count: meshes.length }
+  const canvasRect = canvas.getBoundingClientRect()
+  let visibleTop = canvasRect.top
+  let visibleBottom = canvasRect.bottom
+  const main = canvas.closest("main")
+  if (main) {
+    for (const child of main.children) {
+      if (child.contains(canvas)) continue
+      const rect = child.getBoundingClientRect()
+      if (rect.width < 8 || rect.height < 8) continue
+      if (rect.top <= canvasRect.top + 8 && rect.bottom > canvasRect.top) visibleTop = Math.max(visibleTop, rect.bottom)
+      if (rect.bottom >= canvasRect.bottom - 8 && rect.top < canvasRect.bottom) visibleBottom = Math.min(visibleBottom, rect.top)
     }
-    const margin = 6
-    const violations = []
-    for (const mesh of meshes) {
-      const { min, max } = mesh.box
-      const corners = []
-      for (const x of [min.x, max.x]) {
-        for (const y of [min.y, max.y]) {
-          for (const z of [min.z, max.z]) {
-            const point = new Vector3(x, y, z).project(camera)
-            corners.push({
-              sx: canvasRect.left + ((point.x + 1) / 2) * canvasRect.width,
-              sy: canvasRect.top + ((1 - point.y) / 2) * canvasRect.height,
-              ndc: Math.max(Math.abs(point.x), Math.abs(point.y)),
-            })
-          }
+  }
+  const margin = 6
+  const violations = []
+  for (const mesh of meshes) {
+    const { min, max } = mesh.box
+    const corners = []
+    for (const x of [min.x, max.x]) {
+      for (const y of [min.y, max.y]) {
+        for (const z of [min.z, max.z]) {
+          const point = new Vector3(x, y, z).project(camera)
+          corners.push({
+            sx: canvasRect.left + ((point.x + 1) / 2) * canvasRect.width,
+            sy: canvasRect.top + ((1 - point.y) / 2) * canvasRect.height,
+            ndc: Math.max(Math.abs(point.x), Math.abs(point.y)),
+          })
         }
       }
-      const clipped = corners.filter((corner) => (
-        corner.sx < canvasRect.left + margin
-        || corner.sx > canvasRect.right - margin
-        || corner.sy < visibleTop + margin
-        || corner.sy > visibleBottom - margin
-        || corner.ndc > 1
-      ))
-      if (clipped.length) {
-        violations.push({
-          name: mesh.name,
-          clipped: clipped.length,
-          sy: [Math.min(...corners.map((corner) => corner.sy)), Math.max(...corners.map((corner) => corner.sy))],
-        })
-      }
     }
-    return {
-      violations,
-      meshCount: meshes.length,
-      visibleTop,
-      visibleBottom,
-      canvasTop: canvasRect.top,
-      canvasBottom: canvasRect.bottom,
+    const clipped = corners.filter((corner) => (
+      corner.sx < canvasRect.left + margin
+      || corner.sx > canvasRect.right - margin
+      || corner.sy < visibleTop + margin
+      || corner.sy > visibleBottom - margin
+      || corner.ndc > 1
+    ))
+    if (clipped.length) {
+      violations.push({
+        name: mesh.name,
+        clipped: clipped.length,
+        sy: [Math.min(...corners.map((corner) => corner.sy)), Math.max(...corners.map((corner) => corner.sy))],
+      })
     }
-  })
+  }
+  return {
+    violations,
+    meshCount: meshes.length,
+    visibleTop,
+    visibleBottom,
+    canvasTop: canvasRect.top,
+    canvasBottom: canvasRect.bottom,
+  }
 })()`
 
 async function assertFramed(send, label) {
