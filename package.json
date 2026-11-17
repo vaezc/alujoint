@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "smoke": "node scripts/browser-smoke.mjs",
+    "compress:models": "node scripts/compress_models.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -17,6 +19,7 @@
     "three": "^0.187.0"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "^4.5.1",
     "@tailwindcss/vite": "^4.3.5",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",

@@ -49,9 +49,10 @@ npm run preview
 ### 已完成
 
 - 枚举「铝型材及配件」12 大类 / 108 子分类，得到 **407 个产品系列**（serial）。
-- 用登录态走官方接口下载 STEP：**363 个成功**（44 个失败，约 11%）。
-- cascadio 0.1.1 转 GLB：**362 个成功**（1 个 C++ `double free` 崩溃），共约 **98MB**，在 `public/models/`。
-- 生成 `src/data/catalog.generated.json`（362 条，含分类 / 型号 / 包围盒 / 网格数）。前端接入 361 条；`TXCJ-H6-2020-L100` 与手写样品重复，保留手写那条。
+- 407 个系列里 **406 个已有模型**；唯一缺口是 `LC-AEG01-4460-13-LA100-LB100`（TDB21），服务端一直不出 `built_file`。
+- 转换：405 个 STEP 用 cascadio 0.1.1 转 GLB，另外 3 个（`LC-AEG15-5065-XL90`、`TDB127`、`TDB128`）STEP 三角化挂起，改用站点导出的 STL 转 GLB。
+- 生成 `src/data/catalog.generated.json`（406 条，含分类 / 型号 / 包围盒 / 网格数）。前端接入 405 条；`TXCJ-H6-2020-L100` 与手写样品重复，保留手写那条。
+- meshopt 压缩：`public/models/` 从 **142.2MB 降到 38.7MB**（415 个 GLB，0 失败）。
 
 ### 下载 STEP 的接口链路
 
@@ -90,10 +91,10 @@ npm run preview
 
 ### 已知问题 / 待办
 
-- **44 个下载失败**：多为 `no built_file`（getStatus 30 秒内没出结果，可加长轮询）和 `no productModel`（TDB / TYZ 等系列选型规则不同）。清单在 `sources/pipeline/`。
-- **1 个转换崩溃**：`LC-AEG15-5065-XL90`（cascadio `double free`，需换网格参数或换工具）。
+- **TDB21 缺模型**：`LC-AEG01-4460-13-LA100-LB100`，`getStatus` 180 秒内始终没有 `built_file`，重试两次仍失败。
+- **3 个 STL 兜底**：XL90、TDB127、TDB128 的 STEP 在 cascadio 和 OCP 里都会挂住（最好一次跑了 15 分钟无输出），因此改用站点 STL，记录在 `glb_meta.jsonl` 的 `note` 里。STL 没有 STEP 的装配层级。
 - **前端接入已完成**（2026-11-17）：`CatalogList` / `Viewport` 读 `src/data/catalog.generated.json`，GLB 按需加载，不再固定预加载 9 个文件；抓取条目没有节点名，只能整件点选。
-- **98MB 未压缩**：上线前建议 Draco / meshopt 压缩。
+- **压缩已完成**：meshopt，`npm run compress:models` 可重跑；drei 自带解码器。
 - **爆炸方向（第 2 条）未做**：计划读 GLB 节点层级自动推导 `explodeMm`。
 
 ### 注意
