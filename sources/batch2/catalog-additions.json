@@ -1,0 +1,288 @@
+{
+  "study_id": "jlc-2020-batch2",
+  "created_local": "2026-11-17 11:23 (UTC+8)",
+  "purpose": "Add verified Euro 20 T-nut SKUs from official STEP downloads; record TYZC re-download as a duplicate, not a new asset.",
+  "units_note": "All STEP files use SI millimetre. GLB files are in meters (glTF convention): 0.010 m = 10 mm. Verified: GLB bounds * 1000 match STEP VERTEX_POINT bbox within 0.02 mm.",
+  "valid_new_sku_count": 2,
+  "duplicate_not_added": [
+    "TYZC-H6-206-2020-DZ"
+  ],
+  "sources": {
+    "t_nut_product_page": "https://www.jlcfa.com/serial/1914989413112.html",
+    "corner_product_page": "https://www.jlcfa.com/serial/1562067181103.html",
+    "t_bolt_page_not_downloaded": "https://www.jlcfa.com/serial/2051658501549.html",
+    "download_readme": "evidence/README.txt",
+    "screenshots": [
+      "evidence/TYZC_H6_selection.png",
+      "evidence/TPAA_Tnut_parameter_diagram.png",
+      "evidence/TPAA_Tnut_M4_format_choices.png"
+    ]
+  },
+  "additions": [
+    {
+      "key": "TPAA-D-6-M4",
+      "sku": "TPAA-D-6-M4",
+      "is_new_asset": true,
+      "kind": "single_solid",
+      "internal_product_name": "TPAA-D-6-M4",
+      "source_step": "raw/TPAA-D-6-M4.step",
+      "source_step_original_filename": "TPAA-D-6-M4嘉立创FA（www.jlcfa.com）.step",
+      "source_step_sha256": "dff0a4855a6cb3ed92ede30f8d8021ede9ffa0992bd30124a14de464df4fc24f",
+      "source_step_bytes": 63038,
+      "step_header": {
+        "file_name_field": "TPAA-D-6-M4.step",
+        "timestamp_in_file_unspecified_tz": "2025-03-11T06:27:14",
+        "preprocessor": "FaSTEP 2.0",
+        "originating_system": "Forface 3D 2012",
+        "schema": "AUTOMOTIVE_DESIGN",
+        "protocol": "STEP AP214"
+      },
+      "units": "mm",
+      "glb": "models/TPAA-D-6-M4.glb",
+      "glb_bytes": 21508,
+      "glb_sha256": "c711ad0b400d915e1d34b772c36936fb1a69d973285b580c991069b9fc25348d",
+      "preview": "previews/TPAA-D-6-M4.png",
+      "product_page": "https://www.jlcfa.com/serial/1914989413112.html",
+      "webpage_options": {
+        "surface": "镀锌",
+        "material": "碳钢",
+        "slot_series": "6",
+        "thread": "M4",
+        "family_codes_on_spec_table": [
+          "TPAA-N",
+          "TPAA-D",
+          "TPAA-G",
+          "TPAA-X6"
+        ]
+      },
+      "fits": {
+        "profile_standard": "欧标20",
+        "slot_series": "6",
+        "official_slot_width_mm": 6.2,
+        "note": "Official family is 20-series T-nut, slot series 6, for Euro 20 slot 6.2. This is a catalog match, not a measured insertion into a TXCJ slot."
+      },
+      "do_not_confuse_with": {
+        "sku": "TPAA-N-6-M4",
+        "reason": "Same slot series and thread, but N is nickel-plated (镀镍) and D is zinc-plated (镀锌). Official TYZC ZP kit lists TPAA-N-6-M4, not this D finish. Do not treat as the exact kit SKU."
+      },
+      "geometry": {
+        "vertex_bbox_mm": {
+          "min": [
+            -5.020544,
+            0.0,
+            -2.987775
+          ],
+          "max": [
+            4.979456,
+            4.5,
+            3.012326
+          ],
+          "size": [
+            10.0,
+            4.5,
+            6.000101
+          ]
+        },
+        "glb_bbox_mm": {
+          "min": [
+            -5.020544,
+            0.0,
+            -2.987775
+          ],
+          "max": [
+            4.979456,
+            4.5,
+            3.012326
+          ],
+          "size": [
+            10.0,
+            4.5,
+            6.000101
+          ]
+        },
+        "scale_check": "GLB is meters; bounds*1000 match STEP millimetre bbox (delta < 1e-6 mm).",
+        "measured_features_for_later_manual_mating": [
+          "Outer envelope 10.000 x 4.500 x 6.000 mm (file axes X/Y/Z). Official drawing uses 10 / 4.5 / 6 and 3.2; Y=3.2 mm appears among STEP vertices.",
+          "Thread is a simplified cylinder in this STEP, not a modelled helical thread. Measured cylindrical radius 1.72 mm (Ø3.44). This is a measured hole, not an official thread-class callout.",
+          "Cascadio split the single solid into two meshes: TPAA-D-6-M4_body (10 x 4.5 x 6.000 mm) and TPAA-D-6-M4_thread_feature (about 3.43 x 4.5 x 3.44 mm)."
+        ],
+        "confirmed_from_step_and_official_table": [
+          "Product name TPAA-D-6-M4 matches the download and 1 PRODUCT / 1 solid / 0 assembly occurrences",
+          "Outer 10 x 4.5 x 6 mm matches the official T-nut drawing envelope"
+        ]
+      },
+      "glb_scene": {
+        "nodes": [
+          "world",
+          "TPAA-D-6-M4",
+          "TPAA-D-6-M4_thread_feature"
+        ],
+        "meshes": [
+          "TPAA-D-6-M4_body",
+          "TPAA-D-6-M4_thread_feature"
+        ],
+        "unit": "meters"
+      },
+      "evidence_level": {
+        "identity_and_bbox": "confirmed_from_step_and_glb",
+        "finish_is_zinc_D": "confirmed_from_download_readme_and_product_page_options",
+        "slot_series_6_for_euro20": "confirmed_from_official_product_page_family",
+        "insertion_pose_in_profile_slot": "not_in_file",
+        "load_rating": "not_in_file"
+      },
+      "unresolved": [
+        "No official insertion coordinate into a TXCJ slot is present in the STEP."
+      ]
+    },
+    {
+      "key": "TPAA-D-6-M5",
+      "sku": "TPAA-D-6-M5",
+      "is_new_asset": true,
+      "kind": "single_solid",
+      "internal_product_name": "TPAA-D-6-M5",
+      "source_step": "raw/TPAA-D-6-M5.step",
+      "source_step_original_filename": "TPAA-D-6-M5嘉立创FA（www.jlcfa.com）.step",
+      "source_step_sha256": "4416de50a5d18dac5817b109c22b8792d78cfb1d7e0aa88a6fffd13c5d258954",
+      "source_step_bytes": 63026,
+      "step_header": {
+        "file_name_field": "TPAA-D-6-M5.step",
+        "timestamp_in_file_unspecified_tz": "2025-03-14T15:38:42",
+        "preprocessor": "FaSTEP 2.0",
+        "originating_system": "Forface 3D 2012",
+        "schema": "AUTOMOTIVE_DESIGN",
+        "protocol": "STEP AP214"
+      },
+      "units": "mm",
+      "glb": "models/TPAA-D-6-M5.glb",
+      "glb_bytes": 21508,
+      "glb_sha256": "14723de82956bfeb53573a5cf993f3f2b5ae1198e28f8fe7b42c2224d6ce9c9b",
+      "preview": "previews/TPAA-D-6-M5.png",
+      "product_page": "https://www.jlcfa.com/serial/1914989413112.html",
+      "webpage_options": {
+        "surface": "镀锌",
+        "material": "碳钢",
+        "slot_series": "6",
+        "thread": "M5",
+        "family_codes_on_spec_table": [
+          "TPAA-N",
+          "TPAA-D",
+          "TPAA-G",
+          "TPAA-X6"
+        ]
+      },
+      "fits": {
+        "profile_standard": "欧标20",
+        "slot_series": "6",
+        "official_slot_width_mm": 6.2,
+        "note": "Official family is 20-series T-nut, slot series 6, for Euro 20 slot 6.2. This is a catalog match, not a measured insertion into a TXCJ slot."
+      },
+      "do_not_confuse_with": {
+        "sku": "TPAA-N-6-M5",
+        "reason": "N is nickel-plated, D is zinc-plated. Same slot series and thread size, not the same SKU."
+      },
+      "geometry": {
+        "vertex_bbox_mm": {
+          "min": [
+            -5.020544,
+            0.0,
+            -2.987775
+          ],
+          "max": [
+            4.979456,
+            4.5,
+            3.012326
+          ],
+          "size": [
+            10.0,
+            4.5,
+            6.000101
+          ]
+        },
+        "glb_bbox_mm": {
+          "min": [
+            -5.020544,
+            0.0,
+            -2.987775
+          ],
+          "max": [
+            4.979456,
+            4.5,
+            3.012326
+          ],
+          "size": [
+            10.0,
+            4.5,
+            6.000101
+          ]
+        },
+        "scale_check": "GLB is meters; bounds*1000 match STEP millimetre bbox (delta < 1e-6 mm).",
+        "measured_features_for_later_manual_mating": [
+          "Outer envelope is the same as TPAA-D-6-M4: 10.000 x 4.500 x 6.000 mm. 39 of 43 unique vertices are shared with the M4 solid; only the hole vertices differ.",
+          "Thread is a simplified cylinder. Measured cylindrical radius 2.15 mm (Ø4.30). This is a measured hole, not an official thread-class callout.",
+          "Meshes: TPAA-D-6-M5_body (10 x 4.5 x 6.000 mm) and TPAA-D-6-M5_thread_feature (about 4.29 x 4.5 x 4.30 mm)."
+        ],
+        "confirmed_from_step_and_official_table": [
+          "Product name TPAA-D-6-M5 matches the download and 1 PRODUCT / 1 solid / 0 assembly occurrences",
+          "Outer envelope matches the official T-nut drawing and the M4 file"
+        ]
+      },
+      "glb_scene": {
+        "nodes": [
+          "world",
+          "TPAA-D-6-M5",
+          "TPAA-D-6-M5_thread_feature"
+        ],
+        "meshes": [
+          "TPAA-D-6-M5_body",
+          "TPAA-D-6-M5_thread_feature"
+        ],
+        "unit": "meters"
+      },
+      "evidence_level": {
+        "identity_and_bbox": "confirmed_from_step_and_glb",
+        "finish_is_zinc_D": "confirmed_from_download_readme_and_product_page_options",
+        "slot_series_6_for_euro20": "confirmed_from_official_product_page_family",
+        "insertion_pose_in_profile_slot": "not_in_file",
+        "load_rating": "not_in_file"
+      },
+      "unresolved": [
+        "No official insertion coordinate into a TXCJ slot is present in the STEP."
+      ]
+    }
+  ],
+  "not_added": [
+    {
+      "key": "TYZC-H6-206-2020-DZ",
+      "is_new_asset": false,
+      "reason": "Byte-identical to batch-1 file. SHA256 dec4c551ef2425942168a8af8bf593421a42b95d952f9570e75bb92d5c145e44 matches /workspace/jlc-2020-study/raw/TYZC-H6-206-2020-ZP-OB嘉立创FA（www.jlcfa.com）.step. Internal PRODUCT remains TYZC-H6-206-2020-DZ, 1 solid, 0 assembly occurrences, bbox 32 x 32 x 19 mm.",
+      "download_filename": "TYZC-H6-206-2020-ZP-OB-DZ嘉立创FA（www.jlcfa.com）.step",
+      "copy_kept_for_record": "raw/TYZC-H6-206-2020-ZP-OB-DZ嘉立创FA（www.jlcfa.com）.step",
+      "webpage_options_this_attempt": {
+        "product_page": "https://www.jlcfa.com/serial/1562067181103.html",
+        "shown_sku_on_page": "TYZC-H6-206-2020-ZP-OB-DZ",
+        "surface": "本色喷砂阳极氧化",
+        "material": "ADC12",
+        "profile_type": "206",
+        "size": "2020",
+        "extra_machining_1": "无",
+        "screw_kit": "ZP",
+        "accessory_type": "OB",
+        "extra_machining_2": "DZ",
+        "evidence": "evidence/TYZC_H6_selection.png and evidence/README.txt"
+      },
+      "conclusion": "Selecting ZP on the webpage still produced the DZ body-only STEP, with no screws, T-nuts, or washers inside the file. Existing models/TYZC.glb from batch 1 remains the asset to use."
+    }
+  ],
+  "missing_for_corner_kit_and_exploded_view": [
+    "EDLA-S1-M4-L10 (official TYZC ZP screw; not downloaded)",
+    "EPDA-S1W-K-4 (washer; not downloaded)",
+    "EPDB-S1W-B1-4 (spring washer; not downloaded)",
+    "A real ZP assembly STEP that contains those fasteners, if the mall ever emits one",
+    "T-bolt models were not downloaded: https://www.jlcfa.com/serial/2051658501549.html required login"
+  ],
+  "not_inferred": [
+    "No invented mate or exploded-view coordinates between profile, corner, T-nut, screw, or washers.",
+    "No load ratings.",
+    "Measured T-nut envelope and hole radii may be used later for manual mating, but they are not official assembly transforms."
+  ]
+}
