@@ -90,7 +90,7 @@ export function CatalogList({
         )}
       </ul>
       <p className="border-t border-[#ddd6cb] px-4 py-3 text-[11px] leading-5 text-[#6d675f]">
-        只收录这几件已经打开过的样品。欧标 20 的其余规格、表面处理和紧固件不在这里，也不要把它当成厂家目录。
+        共 {samples.length} 条，当前 {visible.length} 条。手写的几件带完整说明；抓取目录的条目只有包围盒和网格数，没有逐件核对。
       </p>
     </div>
   )

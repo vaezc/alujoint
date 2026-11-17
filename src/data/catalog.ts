@@ -1,8 +1,9 @@
+import generatedCatalog from "./catalog.generated.json"
 import { euroJoint, tpdhScrewTravelMm, type JointDefinition } from "./joint"
 
 export type Vec3 = [number, number, number]
 
-export type SampleKind = "profile" | "connector" | "fastener" | "scene"
+export type SampleKind = "profile" | "connector" | "fastener" | "accessory" | "scene"
 
 export type FilterId = "all" | SampleKind
 
@@ -22,7 +23,7 @@ export type ModelAsset = {
 export type Placement = {
   id: string
   label: string
-  assetId: keyof typeof assets
+  assetId: string
   positionMm: Vec3
   rotation: Vec3
   explodeMm: Vec3
@@ -65,7 +66,7 @@ const tyzcPdf = "https://static.jlcfa.com/Serial/T02/TYZC/595874960008077314.pdf
 const tpdhNew = "https://static.jlcfa.com/Serial/T02/TPDH/569305911508713474.pdf"
 const tpdhOld = "https://static.jlcfa.com/Serial/T02/TPDH/480529780873224194.pdf"
 
-export const assets = {
+const handAssets = {
   txcj: {
     url: "/models/TXCJ.glb",
     units: "m",
@@ -270,7 +271,7 @@ function hardwareSample(input: {
   id: string
   code: string
   title: string
-  assetId: keyof typeof assets
+  assetId: string
   summary: string
   caution: string
   search: string
@@ -637,7 +638,89 @@ const sampleList: Sample[] = [
   },
 ]
 
-export const samples: Sample[] = promoteJoint(sampleList)
+type CatalogItem = {
+  id: string
+  code: string
+  model: string
+  group: string
+  category: string
+  kind: string
+  glb: string
+  bboxMm: number[]
+  meshes: number
+  bytes: number
+}
+
+const generated = generatedCatalog as unknown as { generatedAt: string; count: number; items: CatalogItem[] }
+
+const handCodes = new Set(sampleList.map((sample) => sample.code))
+
+const generatedAssets: Record<string, ModelAsset> = {}
+const generatedSamples: Sample[] = []
+
+for (const item of generated.items) {
+  if (handCodes.has(item.model)) continue
+  const assetId = `catalog-${item.id}`
+  const [x = 0, y = 0, z = 0] = item.bboxMm ?? []
+  generatedAssets[assetId] = { url: item.glb, units: "m", nodes: [], explodeMm: {} }
+  generatedSamples.push({
+    id: `catalog-${item.id}`,
+    code: catalogCode(item),
+    title: item.group || item.category,
+    kind: catalogKind(item.kind),
+    badge: `抓取目录 · ${item.meshes} 网格`,
+    summary: `${item.category}${item.group && item.group !== item.category ? ` / ${item.group}` : ""}。批量抓取条目，包围盒 ${millimeter(x)} × ${millimeter(y)} × ${millimeter(z)} mm。`,
+    caution: "批量目录条目：只有包围盒和网格数，没有逐件核对。",
+    search: `${item.model} ${item.code} ${item.group} ${item.category}`,
+    placements: [
+      {
+        id: "part",
+        label: catalogCode(item),
+        assetId,
+        positionMm: [0, 0, 0],
+        rotation: [0, 0, 0],
+        explodeMm: [0, 0, 0],
+      },
+    ],
+    geometry: [
+      `GLB 按米存放。网格包围盒 ${millimeter(x)} × ${millimeter(y)} × ${millimeter(z)} mm。`,
+      `转换后 ${item.meshes} 个网格，文件 ${item.bytes} 字节。`,
+    ],
+    purpose: [`分类：${item.category}。`, item.group && item.group !== item.category ? `目录分组：${item.group}。` : ""].filter(
+      (line): line is string => line !== "",
+    ),
+    bom: [],
+    install: [],
+    machining: [],
+    sources: [
+      {
+        label: "产品页",
+        href: `https://www.jlcfa.com/serial/${item.id}.html`,
+        note: "抓取管线记录的 series id，未逐页复核。",
+      },
+    ],
+    absent: ["没有配合约束、载荷或扭矩。", "没有逐件核对官方图档。"],
+  })
+}
+
+function catalogKind(kind: string): SampleKind {
+  if (kind === "profile") return "profile"
+  if (kind === "connector") return "connector"
+  return "accessory"
+}
+
+function catalogCode(item: CatalogItem): string {
+  return item.model.startsWith(item.code) ? item.model : `${item.code}-${item.model}`
+}
+
+function millimeter(value: number): string {
+  const rounded = Math.round(value * 10) / 10
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)
+}
+
+export const assets: Record<string, ModelAsset> = { ...handAssets, ...generatedAssets }
+
+export const samples: Sample[] = promoteJoint([...sampleList, ...generatedSamples])
 
 function promoteJoint(list: Sample[]): Sample[] {
   const joint = list.find((item) => item.assembly)
@@ -677,6 +760,7 @@ export const filters: { id: FilterId; label: string }[] = [
   { id: "profile", label: "型材" },
   { id: "connector", label: "连接件" },
   { id: "fastener", label: "紧固件" },
+  { id: "accessory", label: "配件" },
   { id: "scene", label: "示意" },
 ]
 
@@ -688,6 +772,8 @@ export function kindLabel(kind: SampleKind): string {
       return "连接件"
     case "fastener":
       return "紧固件"
+    case "accessory":
+      return "配件"
     case "scene":
       return "示意"
     default: {
@@ -704,6 +790,7 @@ export function matchesFilter(sample: Sample, filter: FilterId): boolean {
     case "profile":
     case "connector":
     case "fastener":
+    case "accessory":
     case "scene":
       return sample.kind === filter
     default: {
@@ -737,6 +824,9 @@ export function nodesForSample(sample: Sample): { placementId: string; name: str
         name: node.name,
         label: sample.placements.length > 1 ? `${placement.label} · ${node.label}` : node.label,
       })
+    }
+    if (sample.placements.length === 1 && asset.nodes.length === 0) {
+      rows.push({ placementId: placement.id, name: "*", label: placement.label })
     }
   }
   return rows

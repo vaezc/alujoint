@@ -1,9 +1,19 @@
 import { spawn } from "node:child_process"
-import { writeFileSync } from "node:fs"
+import { existsSync, writeFileSync } from "node:fs"
 
 const port = 9223
-const chrome = spawn(
+const chromeCandidates = [
+  process.env.CHROME_PATH,
   "/opt/google/chrome/chrome",
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+].filter((candidate) => typeof candidate === "string")
+const chromePath = chromeCandidates.find((candidate) => existsSync(candidate))
+if (!chromePath) {
+  console.error("找不到 Chrome。用 CHROME_PATH 指定可执行文件路径。")
+  process.exit(1)
+}
+const chrome = spawn(
+  chromePath,
   [
     "--headless=new",
     `--remote-debugging-port=${port}`,
@@ -31,6 +41,21 @@ function readBox(text) {
   const match = text.match(/包围盒 X ([0-9.]+) · Y ([0-9.]+) · Z ([0-9.]+)/)
   if (!match) return null
   return { x: Number(match[1]), y: Number(match[2]), z: Number(match[3]) }
+}
+
+async function waitFor(send, test, timeout = 8000) {
+  const started = Date.now()
+  let text = ""
+  while (Date.now() - started < timeout) {
+    text = await evaluate(send, "document.body.innerText")
+    if (test(text)) return text
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  return text
+}
+
+function hasBounds(text) {
+  return readBox(text) !== null
 }
 
 async function page() {
@@ -203,13 +228,14 @@ try {
   await evaluate(send, "document.fonts ? document.fonts.ready : true")
   await new Promise((resolve) => setTimeout(resolve, 1200))
 
-  const opening = await evaluate(send, "document.body.innerText")
+  const opening = await waitFor(send, hasBounds)
   if (!opening.includes("铝构")) fail("标题没有铝构")
   if (!opening.includes("整组爆炸")) fail("首页没有整组爆炸")
   if (!opening.includes("缺模型")) fail("首页没有缺模型的清单")
   if (!opening.includes("装配位置为教学示意")) fail("角部视图没有教学示意这句话")
   if (!opening.includes("EDLA-S1-M4-L10")) fail("清单没有 EDLA")
   if (!opening.includes("TPAA-D-6-M4")) fail("清单没有镀锌螺母")
+  if (!opening.includes("共 371 条")) fail("抓取目录没有全部接入清单")
   if (opening.includes("没有可用的 WebGL")) fail("SwiftShader 下 WebGL 仍然不可用")
   const openBox = readBox(opening)
   if (!openBox || openBox.x < 90 || openBox.x > 150 || openBox.y < 90 || openBox.y > 150 || openBox.z > 40) {
@@ -278,7 +304,7 @@ try {
     `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("TXCJ-H6-2020-L100")) button.click() })`,
   )
   await new Promise((resolve) => setTimeout(resolve, 800))
-  const profileText = await evaluate(send, "document.body.innerText")
+  const profileText = await waitFor(send, (text) => /包围盒 X 100/.test(text))
   if (!profileText.includes("X 100")) fail(`型材包围盒不是 100 mm：${profileText.match(/包围盒[^\n]+/)?.[0] ?? "missing"}`)
   if (profileText.includes("截面矢量")) fail("型材仍标成截面矢量")
   await shot(send, "/tmp/euro20-profile.png")
@@ -288,7 +314,7 @@ try {
     `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("TPAA-D-6-M4")) button.click() })`,
   )
   await new Promise((resolve) => setTimeout(resolve, 800))
-  const nutText = await evaluate(send, "document.body.innerText")
+  const nutText = await waitFor(send, hasBounds)
   const nutBox = readBox(nutText)
   if (!nutBox || nutBox.x < 9.5 || nutBox.x > 10.5 || nutBox.y < 4.3 || nutBox.y > 4.7 || nutBox.z < 5.8 || nutBox.z > 6.3) {
     fail(`T 形螺母包围盒不是 10×4.5×6：${nutText.match(/包围盒[^\n]+/)?.[0] ?? "missing"}`)
@@ -301,7 +327,7 @@ try {
     `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("TYZC-H6-206-2020-DZ")) button.click() })`,
   )
   await new Promise((resolve) => setTimeout(resolve, 800))
-  const tyzcText = await evaluate(send, "document.body.innerText")
+  const tyzcText = await waitFor(send, hasBounds)
   const tyzcBox = readBox(tyzcText)
   if (!tyzcBox || tyzcBox.x < 31 || tyzcBox.x > 33 || tyzcBox.y < 31 || tyzcBox.y > 33 || tyzcBox.z < 18 || tyzcBox.z > 20) {
     fail(`角座包围盒不是 32×32×19：${tyzcText.match(/包围盒[^\n]+/)?.[0] ?? "missing"}`)
@@ -314,7 +340,7 @@ try {
     `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("TPDH-206-T-ZP")) button.click() })`,
   )
   await new Promise((resolve) => setTimeout(resolve, 800))
-  const tpdhText = await evaluate(send, "document.body.innerText")
+  const tpdhText = await waitFor(send, hasBounds)
   if (!tpdhText.includes("螺钉 NAUO2") || !tpdhText.includes("NAUO3") || !tpdhText.includes("NAUO4")) {
     fail("端面连接件没有 NAUO2–4")
   }
@@ -329,7 +355,10 @@ try {
     `document.querySelectorAll("button").forEach((button) => { if (button.textContent.trim() === "拉开") button.click() })`,
   )
   await new Promise((resolve) => setTimeout(resolve, 500))
-  const explodedText = await evaluate(send, "document.body.innerText")
+  const explodedText = await waitFor(send, (text) => {
+    const box = readBox(text)
+    return box !== null && box.x > 55 && box.y > 55 && box.z > 55
+  })
   const exploded = readBox(explodedText)
   if (!exploded || exploded.x < 55 || exploded.y < 55 || exploded.z < 55) {
     fail(`拉开后三轴没有分开：${explodedText.match(/包围盒[^\n]+/)?.[0] ?? "missing"}`)
@@ -340,6 +369,37 @@ try {
   )
   await new Promise((resolve) => setTimeout(resolve, 200))
   await shot(send, "/tmp/euro20-tpdh-exploded.png")
+
+  await evaluate(
+    send,
+    `(() => {
+      const input = document.querySelector("#catalog-search")
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set
+      setter.call(input, "TDB01-LC-AEG01-4460-9-LA100")
+      input.dispatchEvent(new Event("input", { bubbles: true }))
+    })()`,
+  )
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  const searchText = await evaluate(send, "document.body.innerText")
+  if (!searchText.includes("TDB01-LC-AEG01-4460-9-LA100")) fail("检索没有命中抓取目录条目")
+  await evaluate(
+    send,
+    `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("TDB01-LC-AEG01-4460-9-LA100")) button.click() })`,
+  )
+  const catalogText = await waitFor(send, hasBounds)
+  if (!catalogText.includes("批量目录条目")) fail("抓取目录条目没有标明来源")
+  if (!catalogText.includes("没有逐件核对")) fail("抓取目录条目没有保留未核对说明")
+  await shot(send, "/tmp/euro20-catalog-item.png")
+  await evaluate(
+    send,
+    `(() => {
+      const input = document.querySelector("#catalog-search")
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set
+      setter.call(input, "")
+      input.dispatchEvent(new Event("input", { bubbles: true }))
+    })()`,
+  )
+  await new Promise((resolve) => setTimeout(resolve, 300))
 
   await evaluate(
     send,
@@ -355,7 +415,7 @@ try {
     `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("整组爆炸")) button.click() })`,
   )
   await new Promise((resolve) => setTimeout(resolve, 900))
-  const sceneText = await evaluate(send, "document.body.innerText")
+  const sceneText = await waitFor(send, (text) => text.includes("型材，沿 X"))
   if (!sceneText.includes("未验证配合")) fail("示意场景没有未验证标记")
   if (!sceneText.includes("型材，沿 X")) fail("示意场景没有两根型材的零件")
   await shot(send, "/tmp/euro20-scene.png")

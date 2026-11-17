@@ -94,7 +94,7 @@ export function App() {
     <div className="flex h-dvh min-h-0 flex-col bg-[#f4f1ea] text-[#241f1a]">
       <header className="flex items-center justify-between gap-4 border-b border-[#ddd6cb] px-4 py-2.5">
         <div className="min-w-0">
-          <p className="text-[11px] tracking-[0.16em] text-[#6d675f]">个人研究 · 欧标 20</p>
+          <p className="text-[11px] tracking-[0.16em] text-[#6d675f]">个人研究 · 铝型材与配件</p>
           <h1 className="truncate text-base font-medium">铝构 · AluJoint</h1>
         </div>
         <div className="flex gap-2 lg:hidden">

@@ -1,6 +1,6 @@
 import { Grid, Html, OrbitControls, useGLTF } from "@react-three/drei"
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber"
-import { Component, memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react"
+import { Component, memo, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react"
 import {
   Box3,
   Color,
@@ -28,16 +28,6 @@ export type BoundsMm = {
   y: number
   z: number
 }
-
-useGLTF.preload("/models/TXCJ.glb")
-useGLTF.preload("/models/TYZC.glb")
-useGLTF.preload("/models/TPDH.glb")
-useGLTF.preload("/models/TPAA-D-6-M4.glb")
-useGLTF.preload("/models/TPAA-D-6-M5.glb")
-useGLTF.preload("/models/EDLA-S1-M4-L10.glb")
-useGLTF.preload("/models/EPDA-S1W-K-4.glb")
-useGLTF.preload("/models/EPDB-S1W-B1-4.glb")
-useGLTF.preload("/models/TPBT-G-M5-L10.glb")
 
 declare global {
   interface Window {
@@ -101,7 +91,9 @@ export const Viewport = memo(function Viewport(props: ViewportProps) {
         <ambientLight intensity={0.35} />
         <directionalLight position={[80, 140, 60]} intensity={1.35} />
         <directionalLight position={[-70, 40, -80]} intensity={0.45} />
-        <Stage {...props} />
+        <Suspense fallback={null}>
+          <Stage {...props} />
+        </Suspense>
       </Canvas>
     </ModelErrorBoundary>
   )
@@ -315,6 +307,10 @@ function PlacedModel({
           object={clone}
           onClick={(event: ThreeEvent<MouseEvent>) => {
             event.stopPropagation()
+            if (names.size === 0) {
+              onSelect({ placementId, nodeName: "*" })
+              return
+            }
             const nodeName = selectableName(event.object, names)
             if (!nodeName) return
             onSelect({ placementId, nodeName })
