@@ -247,7 +247,7 @@ try {
   if (!opening.includes("装配位置为教学示意")) fail("角部视图没有教学示意这句话")
   if (!opening.includes("EDLA-S1-M4-L10")) fail("清单没有 EDLA")
   if (!opening.includes("TPAA-D-6-M4")) fail("清单没有镀锌螺母")
-  if (!opening.includes("共 371 条")) fail("抓取目录没有全部接入清单")
+  if (!opening.includes("共 416 条")) fail("抓取目录没有全部接入清单")
   if (opening.includes("没有可用的 WebGL")) fail("SwiftShader 下 WebGL 仍然不可用")
   const openBox = readBox(opening)
   if (!openBox || openBox.x < 90 || openBox.x > 150 || openBox.y < 90 || openBox.y > 150 || openBox.z > 40) {
@@ -402,6 +402,27 @@ try {
   if (!catalogText.includes("批量目录条目")) fail("抓取目录条目没有标明来源")
   if (!catalogText.includes("没有逐件核对")) fail("抓取目录条目没有保留未核对说明")
   await shot(send, "/tmp/euro20-catalog-item.png")
+
+  await evaluate(
+    send,
+    `(() => {
+      const input = document.querySelector("#catalog-search")
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set
+      setter.call(input, "LC-AEG15-5065-XL90")
+      input.dispatchEvent(new Event("input", { bubbles: true }))
+    })()`,
+  )
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  await evaluate(
+    send,
+    `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("LC-AEG15-5065-XL90")) button.click() })`,
+  )
+  const xl90Text = await waitFor(send, hasBounds)
+  const xl90Box = readBox(xl90Text)
+  if (!xl90Box || xl90Box.x < 95 || xl90Box.x > 100 || xl90Box.z < 88 || xl90Box.z > 92) {
+    fail(`XL90 备用 STL 转出的包围盒不对：${JSON.stringify(xl90Box)}`)
+  }
+  await shot(send, "/tmp/euro20-xl90.png")
   await evaluate(
     send,
     `(() => {
@@ -418,7 +439,7 @@ try {
   const categoryText = await evaluate(send, "document.body.innerText")
   if (!categoryText.includes("TPAA-N-6-M4")) fail("分类筛选没有留下型材专用紧固件")
   if (categoryText.includes("整组爆炸")) fail("分类筛选没有排除手写示意")
-  if (!categoryText.includes("当前 43 条")) fail("分类筛选后的条数不对")
+  if (!categoryText.includes("当前 45 条")) fail("分类筛选后的条数不对")
   await selectValue(send, "#catalog-category", "all")
   await new Promise((resolve) => setTimeout(resolve, 300))
 

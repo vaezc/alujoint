@@ -65,7 +65,7 @@ npm run preview
 
 ### 产物与中间数据
 
-- `scripts/pipeline/`：管线脚本 —— `crawl_cats.py`（分类树）、`enum_all.mjs`（list 页翻页枚举 serial）、`batch_download.mjs`（下载 STEP）、`batch_convert2.py` + `convert_one.py`（STEP→GLB，逐件子进程隔离崩溃）、`gen_catalog.py`（生成数据，默认读 `sources/pipeline/`、写 `src/data/catalog.generated.json`）、`requirements.txt`。
+- `scripts/pipeline/`：管线脚本 —— `crawl_cats.py`（分类树）、`enum_all.mjs`（list 页翻页枚举 serial）、`batch_download.mjs` + `downloader_core.mjs`（登录态下载 STEP，页面内选参数）、`download_one.mjs`（单件下载）、`export_cookies.mjs`（从调试端口导出 cookie）、`batch_convert2.py` + `convert_one.py`（STEP→GLB，逐件子进程隔离崩溃）、`gen_catalog.py`（生成数据）、`requirements.txt`。
 - `scripts/browser-smoke.mjs`：生产包/开发页的 Chrome 冒烟测试。Chrome 路径可用 `CHROME_PATH` 指定，未设置时依次找 Linux 与 macOS 的默认位置。
 - `sources/pipeline/`：中间数据 —— `cat_tree.json`、`serials.jsonl`、`glb_meta.jsonl`、`all_ok.jsonl`、下载记录。
 - `sources/raw/`：原始 STEP（约 218MB），已在 `.gitignore`，只留在本地。
@@ -73,10 +73,20 @@ npm run preview
 
 ### 如何继续
 
-1. 依赖：`python3 -m venv venv && venv/bin/pip install -r scripts/pipeline/requirements.txt`。
-2. 下载：先启动带登录态的 Chrome 并导出 cookie 到上述路径，再 `node scripts/pipeline/batch_download.mjs <outDir> <result.jsonl> <serial列表.txt> <port> <profile>`。脚本里部分路径是当时写死的，按需改。
-3. 转换：`venv/bin/python scripts/pipeline/batch_convert2.py <all_ok.jsonl> public/models sources/pipeline/glb_meta.jsonl`。
-4. 生成：`python3 scripts/pipeline/gen_catalog.py`（默认读 `sources/pipeline/`，输出 `src/data/catalog.generated.json`；也可以传 `<中间数据目录> <输出文件>`）。
+1. 依赖：`python3.12 -m venv venv && venv/bin/pip install -r scripts/pipeline/requirements.txt`（cascadio 0.1.1 没有 CPython 3.14 的 wheel，本机用 3.12）。
+2. 登录：用独立配置启动 Chrome，登录后导出 cookie：
+   ```bash
+   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+     --remote-debugging-port=9237 \
+     --user-data-dir="$HOME/.cache/alujoint-jlc/chrome-profile" \
+     --no-first-run https://www.jlcfa.com/
+   node scripts/pipeline/export_cookies.mjs 9237
+   ```
+   导出文件默认 `~/.cache/alujoint-jlc/cookies.json`，不进仓库。
+3. 下载：`node scripts/pipeline/batch_download.mjs <outDir> <result.jsonl> <serial列表.txt>`。脚本会在页面里把每个参数的第一项选上（下拉用真实指针事件，单选用 click），再用当前选择调用 selection / requestModel / getStatus / modelDownload。单个下载用 `download_one.mjs <serial> [输出路径]`。Chrome 路径可用 `CHROME_PATH` 指定。
+4. 转换：`venv/bin/python scripts/pipeline/batch_convert2.py <all_ok.jsonl> public/models sources/pipeline/glb_meta.jsonl`。进程非零退出但 GLB 可读时仍会收下，并在记录里写 `note`。
+5. 生成：`python3 scripts/pipeline/gen_catalog.py`（默认读 `sources/pipeline/`，输出 `src/data/catalog.generated.json`；也可以传 `<中间数据目录> <输出文件>`）。
+6. 压缩：`npm run compress:models`（meshopt，原地重写 `public/models/*.glb`；drei 自带解码器，前端不用改）。加 `--dry --limit N` 可先试跑。
 
 ### 已知问题 / 待办
 

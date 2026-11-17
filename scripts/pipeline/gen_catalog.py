@@ -1,11 +1,39 @@
 import json
 import os
+import struct
 import sys
 from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 src_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "sources", "pipeline")
 out_path = sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, "src", "data", "catalog.generated.json")
+models_dir = os.path.join(ROOT, "public", "models")
+
+
+def glb_stats(path):
+    """Return (mesh count, primitive count, byte size) from the GLB container."""
+    if not os.path.exists(path):
+        return None
+    with open(path, "rb") as handle:
+        data = handle.read()
+    if len(data) < 20 or data[:4] != b"glTF":
+        return None
+    offset = 12
+    while offset + 8 <= len(data):
+        length, kind = struct.unpack_from("<II", data, offset)
+        offset += 8
+        if kind == 0x4E4F534A:
+            try:
+                gltf = json.loads(data[offset : offset + length])
+            except ValueError:
+                return None
+            meshes = gltf.get("meshes", [])
+            primitives = sum(len(mesh.get("primitives", [])) for mesh in meshes)
+            return len(meshes), primitives, len(data)
+        offset += length
+        if offset % 4:
+            offset += 4 - offset % 4
+    return None
 
 
 def rows(name):
@@ -46,6 +74,8 @@ for r in rows("glb_meta.jsonl"):
     c = s2cat.get(s, {})
     o = ok.get(s, {}) or {}
     catname = c.get("category", "未分类")
+    glb_name = os.path.basename(r["glb"])
+    stats = glb_stats(os.path.join(models_dir, glb_name))
     items.append(
         {
             "id": s,
@@ -54,10 +84,12 @@ for r in rows("glb_meta.jsonl"):
             "group": c.get("group", ""),
             "category": catname,
             "kind": kind_of(catname, o.get("category")),
-            "glb": "/models/" + os.path.basename(r["glb"]),
+            "glb": "/models/" + glb_name,
             "bboxMm": r.get("bboxMm"),
-            "meshes": r.get("meshes"),
-            "bytes": r.get("glbBytes"),
+            # Count primitives, matching the converter's mesh report; read the
+            # final file so compression is reflected in size and counts.
+            "meshes": stats[1] if stats else r.get("meshes"),
+            "bytes": stats[2] if stats else r.get("glbBytes"),
         }
     )
 
