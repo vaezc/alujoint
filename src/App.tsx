@@ -9,6 +9,7 @@ type Sheet = "none" | "catalog" | "notes"
 export function App() {
   const [activeId, setActiveId] = useState(samples[0]?.id ?? "")
   const [filter, setFilter] = useState<FilterId>("all")
+  const [category, setCategory] = useState("all")
   const [query, setQuery] = useState("")
   const [explode, setExplode] = useState(0)
   const explodeRef = useRef(0)
@@ -113,8 +114,10 @@ export function App() {
             samples={samples}
             activeId={sample.id}
             filter={filter}
+            category={category}
             query={query}
             onFilter={setFilter}
+            onCategory={setCategory}
             onQuery={setQuery}
             onSelect={selectSample}
           />
@@ -244,8 +247,10 @@ export function App() {
                 samples={samples}
                 activeId={sample.id}
                 filter={filter}
+                category={category}
                 query={query}
                 onFilter={setFilter}
+                onCategory={setCategory}
                 onQuery={setQuery}
                 onSelect={selectSample}
               />

@@ -220,6 +220,18 @@ async function clickText(send, text) {
   )
 }
 
+async function selectValue(send, selector, value) {
+  await evaluate(
+    send,
+    `(() => {
+      const select = document.querySelector(${JSON.stringify(selector)})
+      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set
+      setter.call(select, ${JSON.stringify(value)})
+      select.dispatchEvent(new Event("change", { bubbles: true }))
+    })()`,
+  )
+}
+
 try {
   const target = await page()
   const send = await connect(target.webSocketDebuggerUrl)
@@ -399,6 +411,15 @@ try {
       input.dispatchEvent(new Event("input", { bubbles: true }))
     })()`,
   )
+  await new Promise((resolve) => setTimeout(resolve, 300))
+
+  await selectValue(send, "#catalog-category", "型材专用紧固件")
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  const categoryText = await evaluate(send, "document.body.innerText")
+  if (!categoryText.includes("TPAA-N-6-M4")) fail("分类筛选没有留下型材专用紧固件")
+  if (categoryText.includes("整组爆炸")) fail("分类筛选没有排除手写示意")
+  if (!categoryText.includes("当前 43 条")) fail("分类筛选后的条数不对")
+  await selectValue(send, "#catalog-category", "all")
   await new Promise((resolve) => setTimeout(resolve, 300))
 
   await evaluate(

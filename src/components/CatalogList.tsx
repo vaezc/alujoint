@@ -4,24 +4,42 @@ type CatalogListProps = {
   samples: Sample[]
   activeId: string
   filter: FilterId
+  category: string
   query: string
   onFilter: (filter: FilterId) => void
+  onCategory: (category: string) => void
   onQuery: (query: string) => void
   onSelect: (id: string) => void
+}
+
+const handCategory = "手写样品"
+
+function categoryOf(sample: Sample): string {
+  return sample.category ?? handCategory
 }
 
 export function CatalogList({
   samples,
   activeId,
   filter,
+  category,
   query,
   onFilter,
+  onCategory,
   onQuery,
   onSelect,
 }: CatalogListProps) {
+  const counts = new Map<string, number>()
+  for (const sample of samples) {
+    const key = categoryOf(sample)
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  const categories = [...counts.entries()]
+
   const needle = query.trim().toLowerCase()
   const visible = samples.filter((sample) => {
     if (!matchesFilter(sample, filter)) return false
+    if (category !== "all" && categoryOf(sample) !== category) return false
     if (!needle) return true
     return `${sample.code} ${sample.title} ${sample.search}`.toLowerCase().includes(needle)
   })
@@ -39,6 +57,22 @@ export function CatalogList({
           placeholder="型号、螺钉或用途"
           className="mt-1.5 w-full border border-[#d3cdc2] bg-white px-2.5 py-1.5 text-sm text-[#241f1a] outline-none focus:border-[#0f6e6b]"
         />
+        <label className="mt-2.5 block text-[11px] tracking-[0.14em] text-[#6d675f]" htmlFor="catalog-category">
+          分类
+        </label>
+        <select
+          id="catalog-category"
+          value={category}
+          onChange={(event) => onCategory(event.target.value)}
+          className="mt-1.5 w-full border border-[#d3cdc2] bg-white px-2 py-1.5 text-sm text-[#241f1a] outline-none focus:border-[#0f6e6b]"
+        >
+          <option value="all">全部分类（{samples.length}）</option>
+          {categories.map(([name, count]) => (
+            <option key={name} value={name}>
+              {name}（{count}）
+            </option>
+          ))}
+        </select>
         <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="筛选">
           {filters.map((item) => {
             const pressed = item.id === filter

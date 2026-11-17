@@ -50,6 +50,8 @@ export type Sample = {
   summary: string
   caution: string | null
   search: string
+  /** 抓取目录的分类。手写样品不填，列表里归到「手写样品」。 */
+  category?: string
   placements: Placement[]
   geometry: string[]
   purpose: string[]
@@ -672,6 +674,7 @@ for (const item of generated.items) {
     summary: `${item.category}${item.group && item.group !== item.category ? ` / ${item.group}` : ""}。批量抓取条目，包围盒 ${millimeter(x)} × ${millimeter(y)} × ${millimeter(z)} mm。`,
     caution: "批量目录条目：只有包围盒和网格数，没有逐件核对。",
     search: `${item.model} ${item.code} ${item.group} ${item.category}`,
+    category: item.category,
     placements: [
       {
         id: "part",
