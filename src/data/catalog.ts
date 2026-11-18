@@ -1,5 +1,7 @@
 import generatedCatalog from "./catalog.generated.json"
+import { clothesRack, clothesRackAssets } from "./clothesRack"
 import { euroJoint, tpdhScrewTravelMm, type JointDefinition } from "./joint"
+import { connectionJoints, connectorExplode } from "./connections"
 
 export type Vec3 = [number, number, number]
 
@@ -18,6 +20,7 @@ export type ModelAsset = {
   units: "m"
   nodes: ModelNode[]
   explodeMm: Record<string, Vec3>
+  explodeSequence?: string[]
 }
 
 export type Placement = {
@@ -26,7 +29,12 @@ export type Placement = {
   assetId: string
   positionMm: Vec3
   rotation: Vec3
+  scale?: Vec3
+  tint?: string
   explodeMm: Vec3
+  explodeAfter?: number
+  explodeUntil?: number
+  explodeAsset?: boolean
 }
 
 export type BomLine = {
@@ -53,6 +61,7 @@ export type Sample = {
   /** 抓取目录的分类。手写样品不填，列表里归到「手写样品」。 */
   category?: string
   placements: Placement[]
+  viewDirection?: Vec3
   geometry: string[]
   purpose: string[]
   bom: BomLine[]
@@ -69,6 +78,12 @@ const tpdhNew = "https://static.jlcfa.com/Serial/T02/TPDH/569305911508713474.pdf
 const tpdhOld = "https://static.jlcfa.com/Serial/T02/TPDH/480529780873224194.pdf"
 
 const handAssets = {
+  teachingPlate45: {
+    url: "/models/teaching-plate-45.glb",
+    units: "m",
+    nodes: [],
+    explodeMm: {},
+  },
   txcj: {
     url: "/models/TXCJ.glb",
     units: "m",
@@ -124,6 +139,7 @@ const handAssets = {
       },
     ],
     explodeMm: tpdhScrewTravelMm,
+    explodeSequence: ["NAUO2", "NAUO3", "NAUO4"],
   },
   tpaaD6M4: {
     url: "/models/TPAA-D-6-M4.glb",
@@ -499,7 +515,7 @@ const sampleList: Sample[] = [
     install: [
       "示例把本体放在型材端面一侧，旁边有螺钉和装饰盖。这份 STEP 没有装饰盖，也没有型材，图上没有贴合余量。",
       "ZP 表示适配沉头螺钉。指定范例印成了 TPDD-206-B-ZP，比系列号 TPDH 多了一处笔误。",
-      "拉开时 NAUO2 再沿 −X、NAUO3 再沿 −Z、NAUO4 再沿 −Y 各移出 40 mm。这是为了看清三颗螺钉，不是安装距离。",
+      "三颗螺钉分别向 +X、+Z、+Y 的头部方向退出。视图中的位移用于展示。",
     ],
     machining: [
       "这两份选型图没有给这件单独的机加步骤。不写拧紧力矩，图纸没有给。",
@@ -603,9 +619,10 @@ const sampleList: Sample[] = [
   }),
   {
     id: "scene-corner",
-    code: "整组爆炸",
-    title: "角部连接",
+    code: "角部连接",
+    title: "型材角部连接（角码）",
     kind: "scene",
+    category: "连接方式",
     badge: "未验证配合",
     summary: euroJoint.summary,
     caution: "装配位置为教学示意，非官方套件或承载验证",
@@ -621,7 +638,7 @@ const sampleList: Sample[] = [
     purpose: ["用来看角部零件怎样沿安装方向分开。不能当成可以受力的接头，也不能当成厂家套件。"],
     bom: jointBom(euroJoint),
     install: [
-      "合拢时型材、角座、垫圈、螺钉和螺母靠在一起。拉开后型材沿长度退出，角座沿分角线离开，螺钉和垫圈沿螺钉轴退回，螺母沿槽口滑出。",
+      "先沿两侧螺钉轴退出螺钉和垫圈，再移开角座，最后沿型材长度分开两根型材。T 形螺母随型材留在槽内。",
       "每条边各放了一组 M4。数量是这条示意用的，不是从清单抄来的件数。",
     ],
     machining: ["没有在这组里切角、攻丝或让位。"],
@@ -654,6 +671,7 @@ type CatalogItem = {
 }
 
 const generated = generatedCatalog as unknown as { generatedAt: string; count: number; items: CatalogItem[] }
+const explodeByItem: Record<string, Omit<ModelAsset, "url" | "units">> = connectorExplode
 
 const handCodes = new Set(sampleList.map((sample) => sample.code))
 
@@ -664,7 +682,8 @@ for (const item of generated.items) {
   if (handCodes.has(item.model)) continue
   const assetId = `catalog-${item.id}`
   const [x = 0, y = 0, z = 0] = item.bboxMm ?? []
-  generatedAssets[assetId] = { url: item.glb, units: "m", nodes: [], explodeMm: {} }
+  const assembly = explodeByItem[item.id]
+  generatedAssets[assetId] = { url: item.glb, units: "m", ...(assembly ?? { nodes: [], explodeMm: {} }) }
   generatedSamples.push({
     id: `catalog-${item.id}`,
     code: catalogCode(item),
@@ -672,7 +691,9 @@ for (const item of generated.items) {
     kind: catalogKind(item.kind),
     badge: `抓取目录 · ${item.meshes} 网格`,
     summary: `${item.category}${item.group && item.group !== item.category ? ` / ${item.group}` : ""}。批量抓取条目，包围盒 ${millimeter(x)} × ${millimeter(y)} × ${millimeter(z)} mm。`,
-    caution: "批量目录条目：只有包围盒和网格数，没有逐件核对。",
+    caution: assembly
+      ? "套件按已核对的零件实例和轴线分解。位移距离用于展示。"
+      : "批量目录条目：只有包围盒和网格数，没有逐件核对。",
     search: `${item.model} ${item.code} ${item.group} ${item.category}`,
     category: item.category,
     placements: [
@@ -721,9 +742,32 @@ function millimeter(value: number): string {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)
 }
 
-export const assets: Record<string, ModelAsset> = { ...handAssets, ...generatedAssets }
+export const assets: Record<string, ModelAsset> = { ...handAssets, ...clothesRackAssets, ...generatedAssets }
 
-export const samples: Sample[] = promoteJoint([...sampleList, ...generatedSamples])
+const connectionSamples: Sample[] = connectionJoints.map((joint) => ({
+  id: `scene-${joint.id}`,
+  code: joint.title.split(" · ")[0],
+  title: joint.title,
+  kind: "scene",
+  category: "连接方式",
+  badge: "未验证配合",
+  summary: joint.summary,
+  caution: joint.statusLabel,
+  search: `${joint.title} ${joint.members.map((member) => member.code).join(" ")}`,
+  assembly: joint,
+  placements: placementsFromJoint(joint),
+  geometry: joint.members
+    .filter((member) => member.presence === "mesh")
+    .map((member) => `${member.label}：${member.code}`),
+  purpose: ["用来看两根型材怎样通过这个连接件连在一起。位置为示意。"],
+  bom: jointBom(joint),
+  install: joint.install ? [joint.install] : [],
+  machining: joint.machining ?? [],
+  sources: joint.drawing ? [{ label: "连接方式参考资料", href: joint.drawing, note: "见装配示例或安装说明。" }] : [],
+  absent: ["没有配合约束、载荷或扭矩。", "位置为示意，未按官方安装图逐点核对。"],
+}))
+
+export const samples: Sample[] = promoteJoint([...sampleList, ...connectionSamples, clothesRack, ...generatedSamples])
 
 function promoteJoint(list: Sample[]): Sample[] {
   const joint = list.find((item) => item.assembly)
@@ -745,6 +789,9 @@ function placementsFromJoint(joint: JointDefinition): Placement[] {
       positionMm: member.positionMm,
       rotation: member.rotation ?? [0, 0, 0],
       explodeMm: member.travelMm ?? [0, 0, 0],
+      explodeAfter: member.explodeAfter,
+      explodeUntil: member.explodeUntil,
+      explodeAsset: member.explodeAsset,
     })
   }
   return rows
@@ -807,6 +854,7 @@ export function sampleHasExplode(sample: Sample): boolean {
   for (const placement of sample.placements) {
     if (placement.explodeMm.some((value) => value !== 0)) return true
     const asset = assets[placement.assetId]
+    if (placement.explodeAsset === false) continue
     for (const offset of Object.values(asset.explodeMm)) {
       if (offset.some((value) => value !== 0)) return true
     }

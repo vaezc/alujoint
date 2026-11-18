@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react"
+import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from "@ui-sdk/react/dialog"
+import { Box, ChevronRight, Crosshair, FileText, Info, LibraryBig, Maximize, Pause, Play, RotateCcw, X } from "lucide-react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { CatalogList } from "./components/CatalogList"
 import { DetailPanel } from "./components/DetailPanel"
 import { Viewport, type BoundsMm, type Selection } from "./components/Viewport"
@@ -7,9 +9,11 @@ import { sampleHasExplode, samples, type FilterId } from "./data/catalog"
 type Sheet = "none" | "catalog" | "notes"
 
 export function App() {
-  const [activeId, setActiveId] = useState(samples[0]?.id ?? "")
+  const [activeId, setActiveId] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get("sample")
+    return samples.find((item) => item.id === requested)?.id ?? samples[0]?.id ?? ""
+  })
   const [filter, setFilter] = useState<FilterId>("all")
-  const [category, setCategory] = useState("all")
   const [query, setQuery] = useState("")
   const [explode, setExplode] = useState(0)
   const explodeRef = useRef(0)
@@ -27,6 +31,15 @@ export function App() {
     explodeRef.current = clamped
     setExplode(clamped)
   }
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(width >= 68rem)")
+    function closeSheet(event: MediaQueryListEvent) {
+      if (event.matches) setSheet("none")
+    }
+    desktop.addEventListener("change", closeSheet)
+    return () => desktop.removeEventListener("change", closeSheet)
+  }, [])
 
   useEffect(() => {
     if (!playing) return
@@ -62,7 +75,17 @@ export function App() {
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       const target = event.target
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return
+      if (event.defaultPrevented || event.repeat || event.altKey || event.ctrlKey || event.metaKey ||
+        !(target instanceof HTMLElement) || target.isContentEditable ||
+        target.matches("input, textarea, select") || sheet !== "none") return
+
+      if (event.key === "/") {
+        const input = document.querySelector<HTMLInputElement>("#catalog-search")
+        event.preventDefault()
+        if (input?.getClientRects().length) input.focus()
+        else setSheet("catalog")
+        return
+      }
       if (event.key === "f" || event.key === "F") {
         setFrameToken((value) => value + 1)
       }
@@ -75,7 +98,7 @@ export function App() {
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [])
+  }, [sheet])
 
   function selectSample(id: string) {
     setActiveId(id)
@@ -91,66 +114,91 @@ export function App() {
     return <p className="p-6 text-sm">目录是空的。</p>
   }
 
+  const catalogProps = {
+    samples,
+    activeId: sample.id,
+    filter,
+    query,
+    onFilter: setFilter,
+    onQuery: setQuery,
+    onSelect: selectSample,
+  }
+  const detailProps = { sample, selection, onSelect: setSelection }
+
   return (
-    <div className="flex h-dvh min-h-0 flex-col bg-[#f4f1ea] text-[#241f1a]">
-      <header className="flex items-center justify-between gap-4 border-b border-[#ddd6cb] px-4 py-2.5">
-        <div className="min-w-0">
-          <p className="text-[11px] tracking-[0.16em] text-[#6d675f]">个人研究 · 铝型材与配件</p>
-          <h1 className="truncate text-base font-medium">铝构 · AluJoint</h1>
+    <div className="app-shell">
+      <a className="skip-link" href="#model-view">跳到三维视图</a>
+      <header className="app-header">
+        <div className="brand">
+          <span className="brand-mark"><Box aria-hidden="true" size={20} /></span>
+          <h1>铝构 <span>AluJoint</span></h1>
         </div>
-        <div className="flex gap-2 lg:hidden">
-          <button type="button" className="bg-[#efeae2] px-2.5 py-1 text-xs" onClick={() => setSheet("catalog")}>
-            目录
-          </button>
-          <button type="button" className="bg-[#efeae2] px-2.5 py-1 text-xs" onClick={() => setSheet("notes")}>
-            说明
-          </button>
+        <span className="workspace-name">三维装配工作台</span>
+        <div className="mobile-actions">
+          <WorkspaceSheet
+            title="目录"
+            icon={<LibraryBig aria-hidden="true" size={16} />}
+            open={sheet === "catalog"}
+            onOpenChange={(open) => setSheet(open ? "catalog" : "none")}
+            initialFocus="#mobile-catalog-search"
+          >
+            <CatalogList {...catalogProps} inputId="mobile-catalog-search" />
+          </WorkspaceSheet>
+          <WorkspaceSheet
+            title="说明"
+            icon={<FileText aria-hidden="true" size={16} />}
+            open={sheet === "notes"}
+            onOpenChange={(open) => setSheet(open ? "notes" : "none")}
+          >
+            <DetailPanel {...detailProps} />
+          </WorkspaceSheet>
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[300px_minmax(0,1fr)_340px]">
-        <aside className="hidden min-h-0 border-r border-[#ddd6cb] bg-[#f7f4ee] lg:block">
-          <CatalogList
-            samples={samples}
-            activeId={sample.id}
-            filter={filter}
-            category={category}
-            query={query}
-            onFilter={setFilter}
-            onCategory={setCategory}
-            onQuery={setQuery}
-            onSelect={selectSample}
-          />
+      <div className="workspace">
+        <aside className="workspace-rail catalog-rail" aria-label="模型目录">
+          <CatalogList {...catalogProps} />
         </aside>
 
-        <main className="relative min-h-0 min-w-0">
-          {sample.placements.length === 0 ? (
-            <EmptyModel sampleTitle={sample.title} />
-          ) : (
-            <Viewport
-              sample={sample}
-              explodeRef={explodeRef}
-              selection={selection}
-              frameToken={frameToken}
-              onSelect={setSelection}
-              onBounds={setBounds}
-            />
-          )}
-          <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-2 p-3">
-            {sample.caution ? (
-              <p className="pointer-events-auto max-w-xl bg-[#24302f]/92 px-3 py-2 text-xs leading-5 text-[#f4f1ea]">
-                {sample.caution}
-              </p>
-            ) : null}
+        <main className="model-panel" id="model-view" tabIndex={-1} aria-labelledby="model-title">
+          <div className="model-heading">
+            <div className="model-context">
+              <Box aria-hidden="true" size={14} />
+              {sample.category ?? "手写样品"}
+              <ChevronRight aria-hidden="true" size={13} />
+              <span>{sample.code}</span>
+            </div>
+            <h2 id="model-title">{sample.title}</h2>
+            {sample.caution ? <p className="model-note"><Info aria-hidden="true" size={15} />{sample.caution}</p> : null}
           </div>
-          <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3 border-t border-[#ddd6cb]/80 bg-[#f4f1ea]/92 px-3 py-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <button type="button" className="bg-white px-2.5 py-1 text-xs" onClick={() => setFrameToken((value) => value + 1)}>
+
+          <div className="model-stage">
+            {sample.placements.length > 0 ? <span className="stage-label"><span aria-hidden="true" />三维视图</span> : null}
+            {sample.placements.length === 0 ? (
+              <EmptyModel />
+            ) : (
+              <Viewport
+                sample={sample}
+                explodeRef={explodeRef}
+                showExplodeLabels={explode > 0.18}
+                selection={selection}
+                frameToken={frameToken}
+                onSelect={setSelection}
+                onBounds={setBounds}
+              />
+            )}
+          </div>
+
+          <div className="viewer-controls">
+            <div className="viewer-toolbar" role="group" aria-label="视图操作">
+              <button type="button" className="ui-button" aria-keyshortcuts="F" onClick={() => setFrameToken((value) => value + 1)}>
+                <Maximize aria-hidden="true" size={15} />
                 取景
               </button>
               <button
                 type="button"
-                className="bg-white px-2.5 py-1 text-xs"
+                className="ui-button"
+                aria-keyshortcuts="R"
                 onClick={() => {
                   setPlaying(false)
                   publishExplode(0)
@@ -158,49 +206,55 @@ export function App() {
                   setFrameToken((value) => value + 1)
                 }}
               >
+                <RotateCcw aria-hidden="true" size={15} />
                 复位
               </button>
               {canExplode ? (
-                <>
-                  <button
-                    type="button"
-                    className="bg-white px-2.5 py-1 text-xs"
-                    onClick={() => {
-                      setPlaying(false)
-                      publishExplode(0)
-                      setFrameToken((value) => value + 1)
-                    }}
-                  >
-                    合拢
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white px-2.5 py-1 text-xs"
-                    onClick={() => {
-                      setPlaying(false)
-                      publishExplode(1)
-                      setFrameToken((value) => value + 1)
-                    }}
-                  >
-                    拉开
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white px-2.5 py-1 text-xs"
-                    onClick={() => {
-                      if (playing) {
+                <div className="explode-controls" role="group" aria-label="爆炸视图">
+                  <div className="pose-buttons">
+                    <button
+                      type="button"
+                      className="ui-button"
+                      aria-pressed={explode === 0}
+                      onClick={() => {
                         setPlaying(false)
+                        publishExplode(0)
                         setFrameToken((value) => value + 1)
-                        return
-                      }
-                      if (explodeRef.current >= 1) publishExplode(0)
-                      setPlaying(true)
-                    }}
-                  >
-                    {playing ? "暂停" : "播放"}
-                  </button>
-                  <label className="flex items-center gap-2 text-xs text-[#3d3832]">
-                    分开
+                      }}
+                    >
+                      {sample.assembly?.initialPoseLabel ?? "合拢"}
+                    </button>
+                    <button
+                      type="button"
+                      className="ui-button"
+                      aria-pressed={explode === 1}
+                      onClick={() => {
+                        setPlaying(false)
+                        publishExplode(1)
+                        setFrameToken((value) => value + 1)
+                      }}
+                    >
+                      拉开
+                    </button>
+                    <button
+                      type="button"
+                      className="ui-button"
+                      onClick={() => {
+                        if (playing) {
+                          setPlaying(false)
+                          setFrameToken((value) => value + 1)
+                          return
+                        }
+                        if (explodeRef.current >= 1) publishExplode(0)
+                        setPlaying(true)
+                      }}
+                    >
+                      {playing ? <Pause aria-hidden="true" size={14} /> : <Play aria-hidden="true" size={14} />}
+                      {playing ? "暂停" : "播放"}
+                    </button>
+                  </div>
+                  <label className="explode-range">
+                    <span className="sr-only">爆炸程度</span>
                     <input
                       type="range"
                       min={0}
@@ -213,67 +267,59 @@ export function App() {
                       }}
                       onPointerUp={() => setFrameToken((value) => value + 1)}
                     />
+                    <span aria-hidden="true">{Math.round(explode * 100)}%</span>
                   </label>
-                </>
-              ) : (
-                <span className="text-xs text-[#6d675f]">这件没有可分开的零件。</span>
-              )}
+                </div>
+              ) : null}
             </div>
-            <p className="font-mono text-[11px] text-[#6d675f]">
-              {bounds
-                ? `包围盒 X ${formatMm(bounds.x)} · Y ${formatMm(bounds.y)} · Z ${formatMm(bounds.z)} mm`
-                : "网格 10 mm，粗线 50 mm"}
-              <span className="ml-3 hidden sm:inline">拖拽旋转 · 右键平移 · 滚轮缩放</span>
-            </p>
+            <div className="viewer-status">
+              <p><Crosshair aria-hidden="true" size={14} />
+                {bounds
+                  ? `包围盒 X ${formatMm(bounds.x)} · Y ${formatMm(bounds.y)} · Z ${formatMm(bounds.z)} mm`
+                  : "网格 10 mm，粗线 50 mm"}
+              </p>
+              <p className="mouse-hints">拖拽旋转 · 右键平移 · 滚轮缩放</p>
+            </div>
           </div>
         </main>
 
-        <aside className="hidden min-h-0 border-l border-[#ddd6cb] bg-[#fbfaf7] lg:block">
-          <DetailPanel sample={sample} selection={selection} onSelect={setSelection} />
+        <aside className="workspace-rail detail-rail" aria-label="模型说明">
+          <DetailPanel {...detailProps} />
         </aside>
       </div>
 
-      {sheet !== "none" ? (
-        <div className="fixed inset-0 z-20 bg-[#f4f1ea] lg:hidden">
-          <div className="flex items-center justify-between border-b border-[#ddd6cb] px-4 py-2.5">
-            <p className="text-sm">{sheet === "catalog" ? "目录" : "说明"}</p>
-            <button type="button" className="text-sm text-[#0f6e6b]" onClick={() => setSheet("none")}>
-              回到视图
-            </button>
-          </div>
-          <div className="h-[calc(100dvh-45px)]">
-            {sheet === "catalog" ? (
-              <CatalogList
-                samples={samples}
-                activeId={sample.id}
-                filter={filter}
-                category={category}
-                query={query}
-                onFilter={setFilter}
-                onCategory={setCategory}
-                onQuery={setQuery}
-                onSelect={selectSample}
-              />
-            ) : (
-              <DetailPanel sample={sample} selection={selection} onSelect={setSelection} />
-            )}
-          </div>
-        </div>
-      ) : null}
     </div>
   )
 }
 
-function EmptyModel({ sampleTitle }: { sampleTitle: string }) {
+function WorkspaceSheet({ title, icon, open, onOpenChange, initialFocus, children }: {
+  title: string
+  icon: ReactNode
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  initialFocus?: string
+  children: ReactNode
+}) {
   return (
-    <div className="grid h-full place-items-center bg-[#e4dfd6] px-8">
-      <div className="max-w-md">
-        <p className="text-[11px] tracking-[0.14em] text-[#6d675f]">没有网格</p>
-        <h2 className="mt-2 text-xl font-medium">{sampleTitle}</h2>
-        <p className="mt-3 text-sm leading-6 text-[#3c3832]">
-          这件没有可显示的网格。用途和清单在说明里，视图不拿别的模型代替。
-        </p>
-      </div>
+    <Dialog open={open} onOpenChange={onOpenChange} presentation="sheet">
+      <DialogTrigger className="ui-button header-button">{icon}{title}</DialogTrigger>
+      <DialogContent className="workspace-sheet" initialFocus={initialFocus}>
+        <div className="sheet-header">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogClose className="ui-button icon-button" aria-label="回到视图"><X aria-hidden="true" size={20} /></DialogClose>
+        </div>
+        <div className="sheet-body">{children}</div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function EmptyModel() {
+  return (
+    <div className="viewport-message">
+      <Box aria-hidden="true" size={28} />
+      <strong>没有网格</strong>
+      <p>可以在说明中查看用途和配件清单。</p>
     </div>
   )
 }

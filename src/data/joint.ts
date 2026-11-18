@@ -1,5 +1,7 @@
 export type Vec3 = [number, number, number]
 
+export const screwReleaseProgress = 0.55
+
 /** Roles a Euro 20 joint can contain. Absent roles stay in the bill and never become meshes. */
 export type JointRole = "profile" | "connector" | "screw" | "tnut" | "washer" | "lock-washer" | "cover"
 
@@ -18,13 +20,16 @@ export type JointMember = {
   code: string
   quantity: number | null
   presence: "mesh" | "absent"
-  assetId?: "txcj" | "tyzc" | "tpdh" | "edla" | "epda" | "epdb" | "tpaaD6M4"
+  assetId?: string
   nodeName?: string
   placementId?: string
   positionMm?: Vec3
   rotation?: Vec3
   /** Offset at explode = 1, in millimeters. Null when the part is absent or has no defensible direction. */
   travelMm: Vec3 | null
+  explodeAfter?: number
+  explodeUntil?: number
+  explodeAsset?: boolean
   basis: AxisBasis
   note: string
 }
@@ -34,31 +39,41 @@ export type JointDefinition = {
   title: string
   status: "partial"
   statusLabel: string
+  initialPoseLabel?: string
   summary: string
+  drawing?: string
+  install?: string
+  machining?: string[]
   members: JointMember[]
 }
 
-/** STEP instance axes for the three EDLG screws already in TPDH.glb. Not a mate to a profile. */
+/** GLB scene axes, directed from the screw tip toward the head. */
 export const tpdhScrewTravelMm = {
-  NAUO2: [-40, 0, 0],
-  NAUO3: [0, 0, -40],
-  NAUO4: [0, -40, 0],
+  NAUO2: [55, 0, 0],
+  NAUO3: [0, 0, 55],
+  NAUO4: [0, 55, 0],
 } as const satisfies Record<string, Vec3>
 
 /** Bracket slot opening measured along the contact face, millimeters in the TYZC file. */
 const slotCenter = 13.5
-/** Shift so the bracket lip at −2 mm sits on the profile face instead of sinking into it. */
-const lip = 2
-const stackX = slotCenter + lip
-const stackY = slotCenter + lip
-const innerFace = 4 + lip
+// The mounting planes are x = 0 and y = 0. The locating ribs enter the T-slots.
+const stackX = slotCenter
+const stackY = slotCenter
+const innerFace = 4
 const flatWasher = 1
 const splitWasher = 0.9
 const shank = 10
 
-const profileA: Vec3 = [0, 0, -10]
+// Clear both screw heads before lifting the perpendicular washer stacks.
+const screwAEnd = 0.16
+const screwBEnd = 0.32
+const washersAEnd = 0.48
+const washersBEnd = 0.64
+const bracketEnd = 0.82
+
+const profileA: Vec3 = [-20, 0, -10]
 const profileB: Vec3 = [0, 0, 10]
-const bracketAt: Vec3 = [lip, lip, 0]
+const bracketAt: Vec3 = [0, 0, 0]
 
 const screwA: Vec3 = [stackX, innerFace + flatWasher + splitWasher - shank, 0]
 const flatA: Vec3 = [stackX, innerFace + flatWasher, 0]
@@ -96,6 +111,7 @@ export const euroJoint: JointDefinition = {
       positionMm: profileA,
       rotation: [0, 0, 0],
       travelMm: [42, 0, 0],
+      explodeAfter: bracketEnd,
       basis: "illustrative",
       note: "槽口朝向角座。拉开时沿长度移出，不是切断或让位。",
     },
@@ -112,6 +128,7 @@ export const euroJoint: JointDefinition = {
       positionMm: profileB,
       rotation: barBRot,
       travelMm: [0, 42, 0],
+      explodeAfter: bracketEnd,
       basis: "illustrative",
       note: "同一只型材转到另一条边。两端没有切角，角上只是靠在一起。",
     },
@@ -128,8 +145,10 @@ export const euroJoint: JointDefinition = {
       positionMm: bracketAt,
       rotation: [0, 0, 0],
       travelMm: [22, 22, 0],
+      explodeAfter: washersBEnd,
+      explodeUntil: bracketEnd,
       basis: "illustrative",
-      note: "H6 的 DZ 本体，不是图上的 X6 带盖角座。两条槽口中点取 13.5 mm，外伸 2 mm 贴在型材面上。",
+      note: "H6 的 DZ 本体，不是图上的 X6 带盖角座。两条安装槽中点取 13.5 mm，定位凸缘伸入型材槽口。",
     },
     {
       id: "screw-a",
@@ -143,7 +162,8 @@ export const euroJoint: JointDefinition = {
       placementId: "screw-a",
       positionMm: screwA,
       rotation: tipDownY,
-      travelMm: [0, 28, 0],
+      travelMm: [0, 60, 0],
+      explodeUntil: screwAEnd,
       basis: "illustrative",
       note: "文件轴是 X，尖端在 0、头在 −14。这里把尖端朝向型材。使用示例印的是 EDLG，这只是 EDLA。",
     },
@@ -159,7 +179,9 @@ export const euroJoint: JointDefinition = {
       placementId: "split-a",
       positionMm: splitA,
       rotation: alongY,
-      travelMm: [0, 18, 0],
+      travelMm: [0, 50, 0],
+      explodeAfter: screwBEnd,
+      explodeUntil: washersAEnd,
       basis: "illustrative",
       note: "网格是厚 0.9 mm 的平面开口环，孔轴为文件 Z。不是螺旋弹簧，也没有自由高度。",
     },
@@ -175,7 +197,9 @@ export const euroJoint: JointDefinition = {
       placementId: "flat-a",
       positionMm: flatA,
       rotation: alongY,
-      travelMm: [0, 12, 0],
+      travelMm: [0, 40, 0],
+      explodeAfter: screwBEnd,
+      explodeUntil: washersAEnd,
       basis: "illustrative",
       note: "Ø12 × 1 mm，孔轴为文件 Z，垫在弹垫和角座内侧面之间。图上的料号与这只相同。",
     },
@@ -191,9 +215,10 @@ export const euroJoint: JointDefinition = {
       placementId: "nut-a",
       positionMm: nutA,
       rotation: [0, 0, 0],
-      travelMm: [24, 0, 0],
+      travelMm: [42, 0, 0],
+      explodeAfter: bracketEnd,
       basis: "illustrative",
-      note: "镀锌 D，放在槽口里当形状示意。不是清单上的镀镍 TPAA-N-6-M4。拉开时沿槽口滑出。",
+      note: "镀锌 D，放在槽口里当形状示意。不是清单上的镀镍 TPAA-N-6-M4。拉开时随型材移动，仍留在槽内。",
     },
     {
       id: "screw-b",
@@ -207,7 +232,9 @@ export const euroJoint: JointDefinition = {
       placementId: "screw-b",
       positionMm: screwB,
       rotation: tipDownX,
-      travelMm: [-28, 0, 0],
+      travelMm: [60, 0, 0],
+      explodeAfter: screwAEnd,
+      explodeUntil: screwBEnd,
       basis: "illustrative",
       note: "另一条边上的同一只 EDLA。尖端朝向这根型材，不和 M5 螺栓混用。",
     },
@@ -223,7 +250,9 @@ export const euroJoint: JointDefinition = {
       placementId: "split-b",
       positionMm: splitB,
       rotation: holeDownX,
-      travelMm: [-18, 0, 0],
+      travelMm: [50, 0, 0],
+      explodeAfter: washersAEnd,
+      explodeUntil: washersBEnd,
       basis: "illustrative",
       note: "与第一条边相同的平面弹垫，沿这根螺钉的轴分开。",
     },
@@ -239,7 +268,9 @@ export const euroJoint: JointDefinition = {
       placementId: "flat-b",
       positionMm: flatB,
       rotation: holeDownX,
-      travelMm: [-12, 0, 0],
+      travelMm: [40, 0, 0],
+      explodeAfter: washersAEnd,
+      explodeUntil: washersBEnd,
       basis: "illustrative",
       note: "与第一条边相同的平垫。",
     },
@@ -255,9 +286,10 @@ export const euroJoint: JointDefinition = {
       placementId: "nut-b",
       positionMm: nutB,
       rotation: barBRot,
-      travelMm: [0, 24, 0],
+      travelMm: [0, 42, 0],
+      explodeAfter: bracketEnd,
       basis: "illustrative",
-      note: "同样是镀锌 TPAA-D-6-M4，沿这根型材的槽口滑出。",
+      note: "同样是镀锌 TPAA-D-6-M4，拉开时随型材留在槽内。",
     },
     {
       id: "cover",

@@ -1,7 +1,11 @@
 import { spawn } from "node:child_process"
-import { existsSync, writeFileSync } from "node:fs"
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { basename, join } from "node:path"
 
-const port = 9223
+const port = Number(process.env.CHROME_DEBUG_PORT ?? 9223)
+const baseUrl = process.env.SMOKE_URL ?? "http://127.0.0.1:41731/"
+const runDir = mkdtempSync(join(tmpdir(), "alujoint-smoke-"))
 const chromeCandidates = [
   process.env.CHROME_PATH,
   "/opt/google/chrome/chrome",
@@ -17,14 +21,14 @@ const chrome = spawn(
   [
     "--headless=new",
     `--remote-debugging-port=${port}`,
-    "--user-data-dir=/tmp/chrome-smoke",
+    `--user-data-dir=${join(runDir, "chrome-profile")}`,
     "--use-gl=angle",
     "--use-angle=swiftshader",
     "--enable-unsafe-swiftshader",
     "--disable-gpu-sandbox",
     "--no-first-run",
     "--window-size=1440,900",
-    "http://127.0.0.1:41731/",
+    baseUrl,
   ],
   { stdio: "ignore" },
 )
@@ -63,7 +67,7 @@ async function page() {
     try {
       const response = await fetch(`http://127.0.0.1:${port}/json`)
       const pages = await response.json()
-      const found = pages.find((item) => item.type === "page" && item.webSocketDebuggerUrl)
+      const found = pages.find((item) => item.type === "page" && item.url === baseUrl && item.webSocketDebuggerUrl)
       if (found) return found
     } catch {
       // Chrome is still starting.
@@ -122,11 +126,12 @@ async function evaluate(send, expression) {
 
 async function shot(send, file) {
   const { data } = await send("Page.captureScreenshot", { format: "png" })
-  writeFileSync(file, Buffer.from(data, "base64"))
-  console.log("shot", file)
+  const output = join(runDir, basename(file))
+  writeFileSync(output, Buffer.from(data, "base64"))
+  console.log("shot", output)
 }
 
-const frameReport = `(() => {
+const frameReport = (expectedMeshes) => `(() => {
   const probe = window.__ALUJOINT_FRAME__
   if (!probe) return { error: "取景探针还没有挂上" }
   const { root, camera, canvas } = probe
@@ -143,7 +148,7 @@ const frameReport = `(() => {
     if (Math.max(size.x, size.y, size.z) > 300) return
     meshes.push({ name: object.name, box })
   })
-  if (!Vector3 || meshes.length < 8) return { error: "零件网格还没到齐", count: meshes.length }
+  if (!Vector3 || meshes.length !== ${expectedMeshes}) return { error: "零件网格数量不符：" + meshes.length }
   const canvasRect = canvas.getBoundingClientRect()
   let visibleTop = canvasRect.top
   let visibleBottom = canvasRect.bottom
@@ -199,8 +204,8 @@ const frameReport = `(() => {
   }
 })()`
 
-async function assertFramed(send, label) {
-  const report = await evaluate(send, frameReport)
+async function assertFramed(send, label, expectedMeshes = 17) {
+  const report = await evaluate(send, frameReport(expectedMeshes))
   if (!report || report.error) {
     fail(`${label}无法测量取景：${report?.error ?? "empty"}`)
     return
@@ -220,17 +225,44 @@ async function clickText(send, text) {
   )
 }
 
-async function selectValue(send, selector, value) {
-  await evaluate(
-    send,
-    `(() => {
-      const select = document.querySelector(${JSON.stringify(selector)})
-      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set
-      setter.call(select, ${JSON.stringify(value)})
-      select.dispatchEvent(new Event("change", { bubbles: true }))
-    })()`,
-  )
+async function selectModel(send, model) {
+  await evaluate(send, `(() => {
+    const input = document.querySelector("#catalog-search")
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, ${JSON.stringify(model)})
+    input.dispatchEvent(new Event("input", { bubbles: true }))
+  })()`)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  const clicked = await evaluate(send, `(() => {
+    const button = [...document.querySelectorAll("aside li button")].find((button) => button.textContent.includes(${JSON.stringify(model)}))
+    button?.click()
+    return Boolean(button)
+  })()`)
+  if (!clicked) fail("目录里找不到 " + model)
+  await new Promise((resolve) => setTimeout(resolve, 650))
+  await waitFor(send, hasBounds)
 }
+
+async function partPositions(send, name) {
+  return evaluate(send, `(() => {
+    const root = window.__ALUJOINT_FRAME__?.root
+    const node = root?.getObjectByName(${JSON.stringify(name)})
+    const body = root?.getObjectByName("NAUO1")
+    if (!node || !body) return null
+    root.updateWorldMatrix(true, true)
+    const center = body.matrixWorld.elements.slice(12, 15)
+    const positions = []
+    node.traverse((part) => positions.push(part.matrixWorld.elements.slice(12, 15).map((value, index) => value - center[index])))
+    return positions
+  })()`)
+}
+
+function assertTravel(before, after, expected, label) {
+  if (!before || !after || before.length !== after.length || after.some((position, part) =>
+    position.some((value, axis) => Math.abs(value - before[part][axis] - expected[axis]) > 0.1))) {
+    fail(`${label} 的实例或子网格位移不符：${JSON.stringify({ before, after, expected })}`)
+  }
+}
+
 
 try {
   const target = await page()
@@ -242,12 +274,12 @@ try {
 
   const opening = await waitFor(send, hasBounds)
   if (!opening.includes("铝构")) fail("标题没有铝构")
-  if (!opening.includes("整组爆炸")) fail("首页没有整组爆炸")
+  if (!opening.includes("型材角部连接（角码）")) fail("首页没有整组爆炸")
   if (!opening.includes("缺模型")) fail("首页没有缺模型的清单")
   if (!opening.includes("装配位置为教学示意")) fail("角部视图没有教学示意这句话")
   if (!opening.includes("EDLA-S1-M4-L10")) fail("清单没有 EDLA")
   if (!opening.includes("TPAA-D-6-M4")) fail("清单没有镀锌螺母")
-  if (!opening.includes("共 415 条")) fail("抓取目录没有全部接入清单")
+  if (!opening.includes("422 / 422 个条目")) fail("抓取目录没有全部接入清单")
   if (opening.includes("没有可用的 WebGL")) fail("SwiftShader 下 WebGL 仍然不可用")
   const openBox = readBox(opening)
   if (!openBox || openBox.x < 90 || openBox.x > 150 || openBox.y < 90 || openBox.y > 150 || openBox.z > 40) {
@@ -268,7 +300,7 @@ try {
   const fullExplode = await evaluate(send, `document.querySelector('input[aria-label="爆炸程度"]').value`)
   if (Number(fullExplode) !== 100) fail(`整组没有拉到 100%：${fullExplode}`)
   const explodedBounds = readBox(await evaluate(send, "document.body.innerText"))
-  if (!explodedBounds || explodedBounds.x < 160 || explodedBounds.y < 150) {
+  if (!explodedBounds || explodedBounds.x < 135 || explodedBounds.y < 155) {
     fail(`100% 爆炸包围盒没有拉开长型材：${JSON.stringify(explodedBounds)}`)
   }
   await assertFramed(send, "100%爆炸")
@@ -311,21 +343,13 @@ try {
   await new Promise((resolve) => setTimeout(resolve, 400))
   await shot(send, "/tmp/euro20-joint.png")
 
-  await evaluate(
-    send,
-    `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("TXCJ-H6-2020-L100")) button.click() })`,
-  )
-  await new Promise((resolve) => setTimeout(resolve, 800))
+  await selectModel(send, "TXCJ-H6-2020-L100")
   const profileText = await waitFor(send, (text) => /包围盒 X 100/.test(text))
   if (!profileText.includes("X 100")) fail(`型材包围盒不是 100 mm：${profileText.match(/包围盒[^\n]+/)?.[0] ?? "missing"}`)
   if (profileText.includes("截面矢量")) fail("型材仍标成截面矢量")
   await shot(send, "/tmp/euro20-profile.png")
 
-  await evaluate(
-    send,
-    `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("TPAA-D-6-M4")) button.click() })`,
-  )
-  await new Promise((resolve) => setTimeout(resolve, 800))
+  await selectModel(send, "TPAA-D-6-M4")
   const nutText = await waitFor(send, hasBounds)
   const nutBox = readBox(nutText)
   if (!nutBox || nutBox.x < 9.5 || nutBox.x > 10.5 || nutBox.y < 4.3 || nutBox.y > 4.7 || nutBox.z < 5.8 || nutBox.z > 6.3) {
@@ -334,11 +358,7 @@ try {
   if (!nutText.includes("镀锌") || !nutText.includes("TPAA-N-6-M4")) fail("螺母说明没有区分镀锌 D 和镀镍 N")
   await shot(send, "/tmp/euro20-nut.png")
 
-  await evaluate(
-    send,
-    `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("TYZC-H6-206-2020-DZ")) button.click() })`,
-  )
-  await new Promise((resolve) => setTimeout(resolve, 800))
+  await selectModel(send, "TYZC-H6-206-2020-DZ")
   const tyzcText = await waitFor(send, hasBounds)
   const tyzcBox = readBox(tyzcText)
   if (!tyzcBox || tyzcBox.x < 31 || tyzcBox.x > 33 || tyzcBox.y < 31 || tyzcBox.y > 33 || tyzcBox.z < 18 || tyzcBox.z > 20) {
@@ -347,20 +367,26 @@ try {
   if (tyzcText.includes("没有网格")) fail("角座视图仍是空的")
   await shot(send, "/tmp/euro20-tyzc.png")
 
-  await evaluate(
-    send,
-    `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("TPDH-206-T-ZP")) button.click() })`,
-  )
-  await new Promise((resolve) => setTimeout(resolve, 800))
+  await selectModel(send, "TPDH-206-T-ZP")
   const tpdhText = await waitFor(send, hasBounds)
   if (!tpdhText.includes("螺钉 NAUO2") || !tpdhText.includes("NAUO3") || !tpdhText.includes("NAUO4")) {
     fail("端面连接件没有 NAUO2–4")
   }
+  const tpdhClosed = await partPositions(send, "NAUO2")
   const tpdhBox = readBox(tpdhText)
   if (!tpdhBox || [tpdhBox.x, tpdhBox.y, tpdhBox.z].some((value) => value < 30 || value > 33)) {
     fail(`端面套件合拢包围盒不是 31 mm：${tpdhText.match(/包围盒[^\n]+/)?.[0] ?? "missing"}`)
   }
   await shot(send, "/tmp/euro20-tpdh.png")
+  const tpdhNext = await partPositions(send, "NAUO3")
+  await evaluate(send, `(() => {
+    const slider = document.querySelector("main input[type=range]")
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(slider, "20")
+    slider.dispatchEvent(new Event("input", { bubbles: true }))
+  })()`)
+  await new Promise((resolve) => setTimeout(resolve, 200))
+  assertTravel(tpdhClosed, await partPositions(send, "NAUO2"), [33, 0, 0], "TPDH 第一颗螺钉先退出")
+  assertTravel(tpdhNext, await partPositions(send, "NAUO3"), [0, 0, 0], "TPDH 第二颗螺钉等待")
 
   await evaluate(
     send,
@@ -381,6 +407,28 @@ try {
   )
   await new Promise((resolve) => setTimeout(resolve, 200))
   await shot(send, "/tmp/euro20-tpdh-exploded.png")
+  assertTravel(tpdhClosed, await partPositions(send, "NAUO2"), [55, 0, 0], "TPDH 沉头螺钉")
+  await clickText(send, "合拢")
+  await new Promise((resolve) => setTimeout(resolve, 350))
+  assertTravel(tpdhClosed, await partPositions(send, "NAUO2"), [0, 0, 0], "TPDH 复位")
+
+  for (const [model, travel] of [
+    ["TPDF-206-D4.5-ZP", [0, 0, -24]],
+    ["TPDG-206-D5-ZP", [10, 0, 0]],
+    ["TPLH-206-Y-ZP", [0, 22, 0]],
+  ]) {
+    await selectModel(send, model)
+    const closed = await partPositions(send, "NAUO2")
+    if (closed?.length !== 3) fail(model + " 应有一个螺钉实例和两个子网格")
+    await clickText(send, "拉开")
+    await new Promise((resolve) => setTimeout(resolve, 550))
+    assertTravel(closed, await partPositions(send, "NAUO2"), travel, model)
+  }
+
+  await selectModel(send, "TPAA-N-6-M4")
+  if (await evaluate(send, "Boolean(document.querySelector(\"main input[type=range]\"))")) {
+    fail("单个带特征网格的 T 形螺母出现了爆炸控件")
+  }
 
   await evaluate(
     send,
@@ -434,14 +482,19 @@ try {
   )
   await new Promise((resolve) => setTimeout(resolve, 300))
 
-  await selectValue(send, "#catalog-category", "型材专用紧固件")
-  await new Promise((resolve) => setTimeout(resolve, 300))
-  const categoryText = await evaluate(send, "document.body.innerText")
-  if (!categoryText.includes("TPAA-N-6-M4")) fail("分类筛选没有留下型材专用紧固件")
-  if (categoryText.includes("整组爆炸")) fail("分类筛选没有排除手写示意")
-  if (!categoryText.includes("当前 45 条")) fail("分类筛选后的条数不对")
-  await selectValue(send, "#catalog-category", "all")
-  await new Promise((resolve) => setTimeout(resolve, 300))
+  const fasteners = await evaluate(send, `(() => {
+    const group = [...document.querySelectorAll("aside section")].find((section) =>
+      section.querySelector("button[aria-expanded]")?.textContent.includes("型材专用紧固件"))
+    const toggle = group?.querySelector("button[aria-expanded]")
+    if (!toggle) return null
+    const count = group.querySelectorAll("li").length
+    toggle.click()
+    return count
+  })()`)
+  if (fasteners !== 45) fail("型材专用紧固件分组条数不对：" + fasteners)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  const collapsed = await evaluate(send, `[...document.querySelectorAll("button[aria-expanded=false]")].some((button) => button.textContent.includes("型材专用紧固件"))`)
+  if (!collapsed) fail("型材专用紧固件分组没有折叠")
 
   await evaluate(
     send,
@@ -449,18 +502,41 @@ try {
   )
   await new Promise((resolve) => setTimeout(resolve, 200))
   const filtered = await evaluate(send, "document.body.innerText")
-  if (filtered.includes("TXCJ-H6-2020-L100")) fail("筛选「示意」后型材仍留在目录里")
-  if (!filtered.includes("整组爆炸")) fail("筛选后没有整组爆炸")
+  if (await evaluate(send, `[...document.querySelectorAll("button")].some((button) => button.textContent.includes("TXCJ-H6-2020-L100"))`)) fail("筛选「示意」后型材仍留在目录里")
+  if (!filtered.includes("型材角部连接（角码）")) fail("筛选后没有整组爆炸")
 
   await evaluate(
     send,
-    `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("整组爆炸")) button.click() })`,
+    `document.querySelectorAll("button").forEach((button) => { if (button.textContent.includes("型材角部连接（角码）")) button.click() })`,
   )
   await new Promise((resolve) => setTimeout(resolve, 900))
   const sceneText = await waitFor(send, (text) => text.includes("型材，沿 X"))
   if (!sceneText.includes("未验证配合")) fail("示意场景没有未验证标记")
   if (!sceneText.includes("型材，沿 X")) fail("示意场景没有两根型材的零件")
   await shot(send, "/tmp/euro20-scene.png")
+
+  for (const [model, meshes] of [
+    ["端面连接 · L 形", 7],
+    ["端面贴侧面 · 内置", 9],
+    ["角部 · 角槽件", 10],
+    ["直线延长 · 槽内一字连接", 13],
+    ["斜接 · 45° 外置连接板", 21],
+    ["立体角 · 三向端面连接", 10],
+  ]) {
+    await selectModel(send, model)
+    await clickText(send, "取景")
+    await new Promise((resolve) => setTimeout(resolve, 350))
+    await assertFramed(send, model, meshes)
+    if (model.includes("直线延长") || model.includes("斜接") || model.includes("三向端面")) {
+      await clickText(send, "拉开")
+      await new Promise((resolve) => setTimeout(resolve, 400))
+      await assertFramed(send, model + " · 拉开", meshes)
+    }
+    if (model.includes("内置") && !(await evaluate(send, `document.querySelector("main").innerText.includes("预装位置")`))) {
+      fail("TPDF 场景缺少预装位置控件")
+    }
+  }
+  await selectModel(send, "型材角部连接（角码）")
   await send("Emulation.setDeviceMetricsOverride", {
     width: 390,
     height: 844,
@@ -470,7 +546,43 @@ try {
   await new Promise((resolve) => setTimeout(resolve, 400))
   const mobileText = await evaluate(send, "document.body.innerText")
   if (!mobileText.includes("目录")) fail("窄屏没有目录按钮")
+  const mobileWidths = await evaluate(send, `[
+    document.documentElement.scrollWidth,
+    document.documentElement.clientWidth,
+    document.querySelector(".model-stage").getBoundingClientRect().width,
+    document.querySelector("#model-view").getBoundingClientRect().width,
+  ]`)
+  if (mobileWidths[0] > mobileWidths[1] + 1 || mobileWidths[2] > mobileWidths[3] + 1) {
+    fail("移动工作台横向溢出：" + JSON.stringify(mobileWidths))
+  }
   await shot(send, "/tmp/euro20-mobile.png")
+  await evaluate(send, `(() => {
+    const trigger = [...document.querySelectorAll("header button")].find((button) => button.textContent.trim() === "目录")
+    trigger.focus()
+    trigger.click()
+  })()`)
+  await new Promise((resolve) => setTimeout(resolve, 350))
+  const mobileCatalog = await evaluate(send, `(() => {
+    const panel = document.querySelector('.workspace-sheet[data-open]')
+    return panel?.getAttribute("data-presentation") === "sheet" &&
+      panel.getBoundingClientRect().height > 400 &&
+      document.activeElement.id === "mobile-catalog-search"
+  })()`)
+  if (!mobileCatalog) fail("移动目录没有展开为可操作的底部面板，或焦点没有进入检索框")
+  await shot(send, "/tmp/mobile-catalog.png")
+  await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 })
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 })
+  await new Promise((resolve) => setTimeout(resolve, 350))
+  if (!(await evaluate(send, `!document.querySelector(".workspace-sheet[data-open]") && document.activeElement.textContent.trim() === "目录"`))) {
+    fail("Escape 没有关闭移动目录并恢复焦点")
+  }
+  await clickText(send, "说明")
+  await new Promise((resolve) => setTimeout(resolve, 350))
+  if (!(await evaluate(send, `document.querySelector(".workspace-sheet[data-open]")?.textContent.includes("清单与爆炸")`))) {
+    fail("移动说明面板缺少模型清单")
+  }
+  await evaluate(send, `document.querySelector('.workspace-sheet [aria-label="回到视图"]')?.click()`)
+  await new Promise((resolve) => setTimeout(resolve, 350))
   await send("Emulation.setDeviceMetricsOverride", {
     width: 1440,
     height: 900,
@@ -490,6 +602,59 @@ try {
   await new Promise((resolve) => setTimeout(resolve, 200))
   const empty = await evaluate(send, "document.body.innerText")
   if (!empty.includes("没有对上的条目")) fail("空检索没有空状态")
+
+  await send("Page.navigate", { url: new URL("?sample=clothes-rack", baseUrl).href })
+  const rackText = await waitFor(send, (text) => text.includes("衣架 · 2020 框架和 Ø16 光轴") && hasBounds(text), 12000)
+  const rack = readBox(rackText)
+  if (!rack || Math.abs(rack.x - 920) > 0.5 || Math.abs(rack.y - 1502) > 0.5 || Math.abs(rack.z - 440) > 0.5) {
+    fail("衣架外廓应为 920 × 1502 × 440 mm：" + JSON.stringify(rack))
+  }
+  const rackCartSpecs = [
+    "BAGA-C2-A-A-N-D16-L900",
+    "BETV-C2N1-GP-D16-H50",
+    "EDLA-S1-M4-L12",
+    "购 100 颗，装 4 颗",
+    "TPAA-N-6-M4",
+    "购 20 颗，装 4 颗",
+  ]
+  if (rackCartSpecs.some((spec) => !rackText.includes(spec)) || rackText.includes("转接板")) {
+    fail("衣架清单的直装方案与购物车不符")
+  }
+  const shaftFit = await evaluate(send, `(() => {
+    const root = window.__ALUJOINT_FRAME__?.root
+    const shaft = root?.getObjectByName("SolidShaft")
+    if (!shaft) return null
+    root.updateWorldMatrix(true, true)
+    function box(object) {
+      object.geometry.computeBoundingBox()
+      return object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld)
+    }
+    const shaftBox = box(shaft)
+    const supports = []
+    const screws = []
+    const nuts = []
+    root.traverse((part) => {
+      if (part.name === "ShaftClamp") supports.push(box(part))
+      if (part.name.startsWith("M4MountScrew")) screws.push(box(part))
+      if (part.name.startsWith("M4SlotNut")) nuts.push(box(part))
+    })
+    supports.sort((a, b) => a.min.x - b.min.x)
+    if (supports.length !== 2 || root.getObjectByName("OffsetAdapter")) return null
+    return [
+      shaftBox.max.x - shaftBox.min.x,
+      supports[1].min.x - supports[0].min.x,
+      supports[0].min.x - shaftBox.min.x,
+      shaftBox.max.x - supports[1].max.x,
+      supports[0].max.y - shaftBox.max.y,
+      screws.length,
+      nuts.length,
+    ]
+  })()`)
+  const expectedFit = [900, 880, 5, 5, 42, 4, 4]
+  if (!shaftFit || shaftFit.some((value, index) => Math.abs(value - expectedFit[index]) > 0.05)) {
+    fail("衣架光轴长度、支座间距、两端伸出、梁下净空或紧固件数量不符：" + JSON.stringify(shaftFit))
+  }
+  await shot(send, "/tmp/clothes-rack.png")
 
   const webglErrors = logs.filter((line) => {
     const text = String(line)

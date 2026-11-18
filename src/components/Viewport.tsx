@@ -4,6 +4,7 @@ import { Component, memo, Suspense, useEffect, useLayoutEffect, useMemo, useRef,
 import {
   Box3,
   Color,
+  Matrix3,
   Matrix4,
   Mesh,
   MeshStandardMaterial,
@@ -17,6 +18,7 @@ import {
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js"
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
 import { assets, type Sample, type Vec3 } from "../data/catalog"
+import { screwReleaseProgress } from "../data/joint"
 
 export type Selection = {
   placementId: string
@@ -40,6 +42,7 @@ declare global {
 }
 
 const emptyLabels: Record<string, string> = {}
+const noNodeExplode: Record<string, Vec3> = {}
 
 const nodeLabelsByUrl: Record<string, Record<string, string>> = {}
 for (const asset of Object.values(assets)) {
@@ -53,6 +56,7 @@ for (const asset of Object.values(assets)) {
 type ViewportProps = {
   sample: Sample
   explodeRef: RefObject<number>
+  showExplodeLabels: boolean
   selection: Selection | null
   frameToken: number
   onSelect: (selection: Selection | null) => void
@@ -71,7 +75,7 @@ function hasWebGL(): boolean {
 export const Viewport = memo(function Viewport(props: ViewportProps) {
   if (!hasWebGL()) {
     return (
-      <div className="grid h-full place-items-center bg-[#e4dfd6] px-6 text-center text-sm text-[#3c3832]">
+      <div className="viewport-message">
         这个浏览器没有可用的 WebGL，三维视图打不开。目录和说明仍然可以读。
       </div>
     )
@@ -85,7 +89,6 @@ export const Viewport = memo(function Viewport(props: ViewportProps) {
         gl={{ antialias: true }}
         onPointerMissed={() => props.onSelect(null)}
       >
-        <color attach="background" args={["#e4dfd6"]} />
         <Studio />
         <hemisphereLight args={["#f7f4ee", "#b7b1a6", 0.55]} />
         <ambientLight intensity={0.35} />
@@ -115,7 +118,7 @@ function Studio() {
   return null
 }
 
-function Stage({ sample, explodeRef, selection, frameToken, onSelect, onBounds }: ViewportProps) {
+function Stage({ sample, explodeRef, showExplodeLabels, selection, frameToken, onSelect, onBounds }: ViewportProps) {
   const outer = useRef<Group>(null)
   const inner = useRef<Group>(null)
   const controls = useRef<OrbitControlsImpl>(null)
@@ -158,11 +161,11 @@ function Stage({ sample, explodeRef, selection, frameToken, onSelect, onBounds }
       const canvas = gl.domElement
       if (!pendingFrame.current || !orbit || !(camera instanceof PerspectiveCamera) || !(canvas instanceof HTMLCanvasElement)) return
       pendingFrame.current = false
-      frameObject(camera, orbit, target, canvas)
+      frameObject(camera, orbit, target, canvas, sample.viewDirection)
       window.__ALUJOINT_FRAME__ = { root: target, camera, canvas }
     })
     return () => cancelAnimationFrame(frame)
-  }, [camera, frameToken, gl, lift, onBounds, sample.id])
+  }, [camera, frameToken, gl, lift, onBounds, sample.id, sample.viewDirection])
 
   return (
     <>
@@ -170,10 +173,10 @@ function Stage({ sample, explodeRef, selection, frameToken, onSelect, onBounds }
         args={[400, 400]}
         cellSize={10}
         cellThickness={0.6}
-        cellColor="#c9c2b6"
+        cellColor="#a4b7ce"
         sectionSize={50}
         sectionThickness={1.15}
-        sectionColor="#8d867c"
+        sectionColor="#8298b4"
         fadeDistance={700}
         fadeStrength={1}
         infiniteGrid
@@ -186,13 +189,19 @@ function Stage({ sample, explodeRef, selection, frameToken, onSelect, onBounds }
             key={placement.id}
             placementId={placement.id}
             label={placement.label}
-            showLabels={explodeRef.current > 0.18}
+            showLabels={showExplodeLabels}
             url={assets[placement.assetId].url}
             nodeNames={assets[placement.assetId].nodes.map((node) => node.name)}
             positionMm={placement.positionMm}
             rotation={placement.rotation}
+            scale={placement.scale}
+            tint={placement.tint}
             groupExplodeMm={placement.explodeMm}
-            nodeExplodeMm={assets[placement.assetId].explodeMm}
+            explodeAfter={placement.explodeAfter}
+            explodeUntil={placement.explodeUntil}
+            nodeSequence={assets[placement.assetId].explodeSequence}
+            nodeExplodeMm={placement.explodeAsset === false ? noNodeExplode : assets[placement.assetId].explodeMm}
+            nodeExplodeUntil={sample.assembly ? screwReleaseProgress : 1}
             explodeRef={explodeRef}
             selection={selection}
             onSelect={onSelect}
@@ -220,8 +229,14 @@ function PlacedModel({
   nodeNames,
   positionMm,
   rotation,
+  scale,
+  tint,
   groupExplodeMm,
+  explodeAfter = 0,
+  explodeUntil = 1,
+  nodeSequence,
   nodeExplodeMm,
+  nodeExplodeUntil,
   explodeRef,
   selection,
   onSelect,
@@ -233,8 +248,14 @@ function PlacedModel({
   nodeNames: readonly string[]
   positionMm: Vec3
   rotation: Vec3
+  scale?: Vec3
+  tint?: string
   groupExplodeMm: Vec3
+  explodeAfter?: number
+  explodeUntil?: number
+  nodeSequence?: string[]
   nodeExplodeMm: Record<string, Vec3>
+  nodeExplodeUntil: number
   explodeRef: RefObject<number>
   selection: Selection | null
   onSelect: (selection: Selection | null) => void
@@ -242,67 +263,58 @@ function PlacedModel({
   const gltf = useGLTF(url)
   const clone = useMemo(() => gltf.scene.clone(true), [gltf.scene])
   const root = useRef<Group>(null)
-  const bases = useRef(new Map<string, Vector3>())
+  const motions = useRef<NodeMotion[]>([])
   const names = useMemo(() => new Set(nodeNames), [nodeNames])
   const nodeLabels = nodeLabelsByUrl[url] ?? emptyLabels
-  const [labelSpots, setLabelSpots] = useState<{ key: string; text: string; position: Vec3 }[]>([])
+  const partLabel = useMemo(() => {
+    const center = new Box3().setFromObject(gltf.scene).getCenter(new Vector3())
+    return [center.x * 1000 * (scale?.[0] ?? 1), center.y * 1000 * (scale?.[1] ?? 1) + 16, center.z * 1000 * (scale?.[2] ?? 1)] satisfies Vec3
+  }, [gltf.scene, scale])
 
   useFrame(() => {
-    applyExplode(root.current, clone, bases.current, positionMm, groupExplodeMm, nodeExplodeMm, explodeRef.current)
+    applyExplode(root.current, motions.current, positionMm, groupExplodeMm, explodeAfter, explodeUntil, nodeExplodeUntil, explodeRef.current)
   })
 
   useLayoutEffect(() => {
-    bases.current.clear()
+    clone.updateWorldMatrix(true, true)
+    const sceneFromWorld = clone.parent?.matrixWorld.clone().invert() ?? new Matrix4()
+    const nextMotions: NodeMotion[] = []
     clone.traverse((object) => {
       const mesh = asMesh(object)
-      if (mesh) mesh.material = cloneMaterial(mesh.material)
-      if (object.name && Object.prototype.hasOwnProperty.call(nodeExplodeMm, object.name)) {
-        bases.current.set(object.uuid, object.position.clone())
-      }
+      if (mesh) mesh.material = cloneMaterial(mesh.material, tint)
+      const offset = Object.hasOwn(nodeExplodeMm, object.name) ? nodeExplodeMm[object.name] : undefined
+      if (!offset) return
+
+      // Convert a direction in GLB scene coordinates into the node's parent coordinates.
+      const sceneFromParent = object.parent
+        ? new Matrix4().multiplyMatrices(sceneFromWorld, object.parent.matrixWorld)
+        : new Matrix4()
+      const parentFromScene = new Matrix3().setFromMatrix4(sceneFromParent).invert()
+      const travel = new Vector3(...offset).multiplyScalar(0.001).applyMatrix3(parentFromScene)
+      const order = nodeSequence?.indexOf(object.name) ?? -1
+      const steps = nodeSequence?.length ?? 0
+      const start = order >= 0 ? order / steps : 0
+      const end = order >= 0 ? (order + 1) / steps : 1
+      nextMotions.push({ object, base: object.position.clone(), travel, start, end })
     })
-  }, [clone, nodeExplodeMm])
+    motions.current = nextMotions
+    return () => {
+      for (const { object, base } of nextMotions) object.position.copy(base)
+    }
+  }, [clone, nodeExplodeMm, nodeSequence, tint])
 
   useLayoutEffect(() => {
-    applyExplode(root.current, clone, bases.current, positionMm, groupExplodeMm, nodeExplodeMm, explodeRef.current)
+    applyExplode(root.current, motions.current, positionMm, groupExplodeMm, explodeAfter, explodeUntil, nodeExplodeUntil, explodeRef.current)
     clone.traverse((object) => {
       const mesh = asMesh(object)
       if (!mesh) return
       paint(mesh.material, chosen(object, placementId, selection))
     })
-  }, [clone, explodeRef, groupExplodeMm, nodeExplodeMm, placementId, positionMm, selection])
-
-  useLayoutEffect(() => {
-    if (!showLabels) {
-      setLabelSpots((current) => (current.length === 0 ? current : []))
-      return
-    }
-    const spots: { key: string; text: string; position: Vec3 }[] = []
-    const box = new Box3().setFromObject(clone)
-    if (!box.isEmpty()) {
-      const center = box.getCenter(new Vector3())
-      spots.push({
-        key: `${placementId}:part`,
-        text: label,
-        position: [center.x * 1000, center.y * 1000 + 16, center.z * 1000],
-      })
-    }
-    clone.traverse((object) => {
-      const text = nodeLabels[object.name]
-      if (!text) return
-      spots.push({
-        key: `${placementId}:${object.name}`,
-        text,
-        position: [object.position.x * 1000, object.position.y * 1000 + 12, object.position.z * 1000],
-      })
-    })
-    setLabelSpots(spots)
-  }, [clone, label, nodeLabels, placementId, showLabels])
-
-  const position = shift(positionMm, groupExplodeMm, explodeRef.current)
+  }, [clone, explodeAfter, explodeRef, explodeUntil, groupExplodeMm, nodeExplodeMm, nodeExplodeUntil, placementId, positionMm, selection])
 
   return (
-    <group ref={root} position={position} rotation={rotation}>
-      <group scale={1000}>
+    <group ref={root} position={positionMm} rotation={rotation}>
+      <group scale={scale ? [1000 * scale[0], 1000 * scale[1], 1000 * scale[2]] : 1000}>
         <primitive
           object={clone}
           onClick={(event: ThreeEvent<MouseEvent>) => {
@@ -317,20 +329,32 @@ function PlacedModel({
           }}
         />
       </group>
-      {labelSpots.map((spot) => (
-        <PartLabel key={spot.key} text={spot.text} position={spot.position} />
-      ))}
+      {showLabels ? <PartLabel text={label} position={partLabel} /> : null}
+      {showLabels ? Object.entries(nodeLabels).map(([name, text]) => {
+        const node = clone.getObjectByName(name)
+        return node ? <PartLabel key={name} text={text} anchor={node} /> : null
+      }) : null}
     </group>
   )
 }
 
-function PartLabel({ text, position }: { text: string; position: Vec3 }) {
+function PartLabel({ text, position, anchor }: { text: string; position?: Vec3; anchor?: Object3D }) {
+  const label = useRef<Group>(null)
+  useFrame(() => {
+    const group = label.current
+    if (!anchor || !group?.parent) return
+    anchor.getWorldPosition(group.position)
+    group.parent.worldToLocal(group.position)
+    group.position.y += 12
+  })
   return (
-    <Html position={position} center zIndexRange={[12, 0]} distanceFactor={140} style={{ pointerEvents: "none" }}>
-      <span className="pointer-events-none whitespace-nowrap bg-[#24302f]/90 px-1.5 py-0.5 text-[10px] leading-4 text-[#f4f1ea]">
-        {text}
-      </span>
-    </Html>
+    <group ref={label} position={position}>
+      <Html center zIndexRange={[12, 0]} distanceFactor={140} style={{ pointerEvents: "none" }}>
+        <span className="part-label pointer-events-none whitespace-nowrap">
+          {text}
+        </span>
+      </Html>
+    </group>
   )
 }
 
@@ -347,18 +371,19 @@ function asMesh(object: Object3D): Mesh | null {
   return null
 }
 
-function cloneMaterial(material: Material | Material[]): Material | Material[] {
-  if (Array.isArray(material)) return material.map((entry) => viewMaterial(entry))
-  return viewMaterial(material)
+function cloneMaterial(material: Material | Material[], tint?: string): Material | Material[] {
+  if (Array.isArray(material)) return material.map((entry) => viewMaterial(entry, tint))
+  return viewMaterial(material, tint)
 }
 
-function viewMaterial(material: Material): Material {
+function viewMaterial(material: Material, tint?: string): Material {
   const next = material.clone()
   if (!(next instanceof MeshStandardMaterial) || next.map) return next
   if (next.metalness === 1 && next.roughness === 1) {
     next.metalness = 0.62
     next.roughness = 0.4
   }
+  if (tint) next.color.set(tint)
   next.envMapIntensity = 0.9
   return next
 }
@@ -392,30 +417,33 @@ function chosen(object: Object3D, placementId: string, selection: Selection | nu
   return false
 }
 
+type NodeMotion = {
+  object: Object3D
+  base: Vector3
+  travel: Vector3
+  start: number
+  end: number
+}
+
 function applyExplode(
   root: Group | null,
-  clone: Object3D,
-  bases: Map<string, Vector3>,
+  motions: NodeMotion[],
   positionMm: Vec3,
   groupExplodeMm: Vec3,
-  nodeExplodeMm: Record<string, Vec3>,
+  explodeAfter: number,
+  explodeUntil: number,
+  nodeExplodeUntil: number,
   amount: number,
 ) {
-  if (root) {
-    const next = shift(positionMm, groupExplodeMm, amount)
-    root.position.set(next[0], next[1], next[2])
+  if (root) root.position.set(...shift(positionMm, groupExplodeMm, explodeProgress(amount, explodeAfter, explodeUntil)))
+  for (const { object, base, travel, start, end } of motions) {
+    const progress = explodeProgress(amount, start * nodeExplodeUntil, end * nodeExplodeUntil)
+    object.position.copy(base).addScaledVector(travel, progress)
   }
-  clone.traverse((object) => {
-    const base = bases.get(object.uuid)
-    if (!base || !object.name) return
-    const offset = nodeExplodeMm[object.name]
-    if (!offset) return
-    object.position.set(
-      base.x + (offset[0] * amount) / 1000,
-      base.y + (offset[1] * amount) / 1000,
-      base.z + (offset[2] * amount) / 1000,
-    )
-  })
+}
+
+function explodeProgress(amount: number, start: number, end: number): number {
+  return Math.min(1, Math.max(0, (amount - start) / (end - start)))
 }
 
 function shift(position: Vec3, offset: Vec3, explode: number): Vec3 {
@@ -472,6 +500,7 @@ function frameObject(
   controls: OrbitControlsImpl,
   object: Object3D,
   canvas: HTMLCanvasElement,
+  viewDirection: Vec3 = [0.78, 0.48, 0.95],
 ): BoundsMm | null {
   const box = new Box3().setFromObject(object)
   if (box.isEmpty()) return null
@@ -488,7 +517,7 @@ function frameObject(
   const fittedVertical = Math.atan(Math.tan(verticalHalf) * (verticalRoom / halfHeight))
   const fittedHorizontal = Math.atan(Math.tan(verticalHalf) * aspect)
   const distance = (radius * 1.12) / Math.max(Math.sin(Math.min(fittedVertical, fittedHorizontal)), 0.02)
-  const direction = new Vector3(0.78, 0.48, 0.95).normalize()
+  const direction = new Vector3(...viewDirection).normalize()
   camera.position.copy(center).addScaledVector(direction, distance)
   camera.near = Math.max(0.2, distance / 300)
   camera.far = Math.max(distance * 30, radius * 40)
@@ -508,7 +537,7 @@ class ModelErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
   render() {
     if (this.state.failed) {
       return (
-        <div className="grid h-full place-items-center bg-[#e4dfd6] px-6 text-center text-sm text-[#3c3832]">
+        <div className="viewport-message">
           模型文件没有载入。可以换一条目录，或刷新页面后再试。
         </div>
       )
