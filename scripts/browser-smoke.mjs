@@ -279,7 +279,7 @@ try {
   if (!opening.includes("装配位置为教学示意")) fail("角部视图没有教学示意这句话")
   if (!opening.includes("EDLA-S1-M4-L10")) fail("清单没有 EDLA")
   if (!opening.includes("TPAA-D-6-M4")) fail("清单没有镀锌螺母")
-  if (!opening.includes("422 / 422 个条目")) fail("抓取目录没有全部接入清单")
+  if (!opening.includes("423 / 423 个条目")) fail("抓取目录没有全部接入清单")
   if (opening.includes("没有可用的 WebGL")) fail("SwiftShader 下 WebGL 仍然不可用")
   const openBox = readBox(opening)
   if (!openBox || openBox.x < 90 || openBox.x > 150 || openBox.y < 90 || openBox.y > 150 || openBox.z > 40) {

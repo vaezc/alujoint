@@ -51,10 +51,10 @@ npm run preview
 ### 已完成
 
 - 枚举「铝型材及配件」12 大类 / 108 子分类，得到 **407 个产品系列**（serial）。
-- 407 个系列里 **406 个已有模型**；唯一缺口是 `LC-AEG01-4460-13-LA100-LB100`（TDB21），服务端一直不出 `built_file`。
-- 转换：405 个 STEP 用 cascadio 0.1.1 转 GLB，另外 3 个（`LC-AEG15-5065-XL90`、`TDB127`、`TDB128`）STEP 三角化挂起，改用站点导出的 STL 转 GLB。
-- 生成 `src/data/catalog.generated.json`（406 条，含分类 / 型号 / 包围盒 / 网格数）。前端接入 405 条；`TXCJ-H6-2020-L100` 与手写样品重复，保留手写那条。
-- meshopt 压缩：`public/models/` 从 **142.2MB 降到 38.7MB**（415 个 GLB，0 失败）。
+- 407 个系列里 **407 个都有模型**。TDB21 的 STEP 始终不出 `built_file`，改用站点 STL 补齐。
+- 转换：403 个 STEP 用 cascadio 0.1.1 转 GLB，另外 4 个（`LC-AEG15-5065-XL90`、`TDB127`、`TDB128`、`TDB21`）改用站点导出的 STL 转 GLB。
+- 生成 `src/data/catalog.generated.json`（407 条，含分类 / 型号 / 包围盒 / 网格数）。前端接入 406 条；`TXCJ-H6-2020-L100` 与手写样品重复，保留手写那条。
+- meshopt 压缩：`public/models/` 全部 **423 个 GLB，现共 38.8MB**（最初 415 个从 142.2MB 压到 38.7MB，后补的 8 个另行补压）。
 
 ### 下载 STEP 的接口链路
 
@@ -63,6 +63,8 @@ npm run preview
 2. `POST /api/faMall/threed/requestModel`（`isDownloadRequest:1, modelType:"step"`）→ `requestKey`。
 3. `GET /api/faMall/threed/getStatus?requestKey=` → `built_file.url`（Forface OSS 签名地址，需轮询到 `status:1`）。
 4. `GET /api/faMall/threed/modelDownload?requestKey=&url=&fName=&fType=step` → STEP 文件。
+
+`modelType` 也可以填 `stl` 或 `igs`，用于 STEP 请求不出文件、或 STEP 三角化崩溃/挂起的型号；STL 用 `scripts/pipeline/stl_to_glb.py` 转 GLB。
 
 补充：产品页是 SSR + JS 反爬（curl 拿到的是加密挑战页，要用真浏览器渲染）；`/category/` 页是干净 SSR，可直接 curl（内含 JSON-LD 分类树）。
 
@@ -93,8 +95,7 @@ npm run preview
 
 ### 已知问题 / 待办
 
-- **TDB21 缺模型**：`LC-AEG01-4460-13-LA100-LB100`，`getStatus` 180 秒内始终没有 `built_file`，重试两次仍失败。
-- **3 个 STL 兜底**：XL90、TDB127、TDB128 的 STEP 在 cascadio 和 OCP 里都会挂住（最好一次跑了 15 分钟无输出），因此改用站点 STL，记录在 `glb_meta.jsonl` 的 `note` 里。STL 没有 STEP 的装配层级。
+- **4 个 STL 兜底**：XL90、TDB127、TDB128 的 STEP 在 cascadio 和 OCP 里都会挂住（最好一次跑了 15 分钟无输出）；TDB21 是 STEP 请求始终没有 `built_file`。四件都改用站点 STL，记录在 `glb_meta.jsonl` 的 `note` 里。STL 没有 STEP 的装配层级。
 - **前端接入已完成**（2026-11-17）：`CatalogList` / `Viewport` 读 `src/data/catalog.generated.json`，GLB 按需加载，不再固定预加载 9 个文件；抓取条目没有节点名，只能整件点选。
 - **压缩已完成**：meshopt，`npm run compress:models` 可重跑；drei 自带解码器。
 - **爆炸视图**：TPDH、TPDF、TPDG 和 TPLH 按 GLB 的零件实例分解。已记录方向的套件在 `src/data/connections.ts` 中配置，其余批量模型以原始姿态展示。TPDF 场景保留预装间隙，所需的型材加工尚未建模。
