@@ -20,7 +20,7 @@ npm run build
 npm run preview
 ```
 
-`npm run build` 先跑 `tsc -b`，再把静态文件写到 `dist/`。托管时构建命令用 `npm run build`，发布目录用 `dist`。当前没有接 Vercel，这份仓库本身不上线。
+`npm run build` 先跑 `tsc -b`，再把静态文件写到 `dist/`。托管时构建命令用 `npm run build`，发布目录用 `dist`。仓库里有 `wrangler.toml`（Cloudflare Pages，项目名 `alujoint`）和 `.node-version`（Node 22），尚未实际部署。
 
 ## 网格
 
