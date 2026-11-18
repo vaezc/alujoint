@@ -278,8 +278,8 @@ try {
   if (!opening.includes("缺模型")) fail("首页没有缺模型的清单")
   if (!opening.includes("装配位置为教学示意")) fail("角部视图没有教学示意这句话")
   if (!opening.includes("EDLA-S1-M4-L10")) fail("清单没有 EDLA")
-  if (!opening.includes("TPAA-D-6-M4")) fail("清单没有镀锌螺母")
-  if (!opening.includes("423 / 423 个条目")) fail("抓取目录没有全部接入清单")
+  if (!opening.includes("TPAA-N-6-M4")) fail("角码场景没有镀镍螺母")
+  if (!opening.includes("428 / 428 个条目")) fail("抓取目录没有全部接入清单")
   if (opening.includes("没有可用的 WebGL")) fail("SwiftShader 下 WebGL 仍然不可用")
   const openBox = readBox(opening)
   if (!openBox || openBox.x < 90 || openBox.x > 150 || openBox.y < 90 || openBox.y > 150 || openBox.z > 40) {
@@ -522,12 +522,17 @@ try {
     ["直线延长 · 槽内一字连接", 13],
     ["斜接 · 45° 外置连接板", 21],
     ["立体角 · 三向端面连接", 10],
+    ["斜接 · 135° 挤压角码", 9],
+    ["斜接 · 45° 型材连接板", 20],
+    ["立体角 · 三维连接件", 14],
+    ["面板角 · 面板角槽连接件", 9],
+    ["弹性 · 弹性连接件", 1],
   ]) {
     await selectModel(send, model)
     await clickText(send, "取景")
     await new Promise((resolve) => setTimeout(resolve, 350))
     await assertFramed(send, model, meshes)
-    if (model.includes("直线延长") || model.includes("斜接") || model.includes("三向端面")) {
+    if (model.includes("直线延长") || model.includes("斜接") || model.includes("三向端面") || model.includes("三维连接件")) {
       await clickText(send, "拉开")
       await new Promise((resolve) => setTimeout(resolve, 400))
       await assertFramed(send, model + " · 拉开", meshes)

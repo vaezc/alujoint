@@ -1,7 +1,6 @@
 import { screwReleaseProgress, type JointDefinition, type JointMember, type Vec3 } from "./joint"
 
 const profile = "txcj"
-const tpdh = "catalog-2162889907245"
 
 const PROFILE = "TXCJ-H6-2020-L100"
 // Offsets are in the GLB scene axes. A NAUO occurrence moves with all its meshes.
@@ -73,9 +72,9 @@ export const endToEndJoint: JointDefinition = {
     },
     {
       id: "connector", role: "connector", label: "端面连接件", code: "TPDH-206-B-ZP", quantity: 1,
-      presence: "mesh", assetId: tpdh, nodeName: "*", placementId: "connector",
+      presence: "mesh", assetId: "catalog-2162889907245", nodeName: "*", placementId: "connector",
       positionMm: [0, 0, 0], travelMm: null, basis: "step-instance",
-      note: "沿用套件的两个原始螺钉实例。装配面上的定位凸缘伸出约 2 mm。",
+      note: "B 型，套件里是两颗沉头螺钉。装配面上的定位凸缘伸出约 2 mm。",
     },
   ],
 }
@@ -206,8 +205,8 @@ const plateHardware: JointMember[] = plateFixings.flatMap(({ x, y, slotAngle }, 
     basis: "illustrative", note: "穿过通孔后与槽内 M4 螺母相对，沿板面法向退出。",
   },
   {
-    id: "plate-nut-" + index, role: "tnut", label: "槽内螺母 " + (index + 1), code: "TPAA-D-6-M4",
-    quantity: 1, presence: "mesh", assetId: "tpaaD6M4", nodeName: "*", placementId: "plate-nut-" + index,
+    id: "plate-nut-" + index, role: "tnut", label: "槽内螺母 " + (index + 1), code: "TPAA-N-6-M4",
+    quantity: 1, presence: "mesh", assetId: "catalog-1914989413112", nodeName: "*", placementId: "plate-nut-" + index,
     positionMm: [x, y, -6.3], rotation: [Math.PI / 2, slotAngle, 0], travelMm: null,
     basis: "illustrative", note: "长边沿所在槽口，分解时留在型材槽内。",
   },
@@ -215,7 +214,7 @@ const plateHardware: JointMember[] = plateFixings.flatMap(({ x, y, slotAngle }, 
 
 const externalPlate: JointDefinition = {
   id: "external-plate-45",
-  title: "斜接 · 45° 外置连接板",
+  title: "斜接 · 45° 外置连接板（自建教学板）",
   status: "partial",
   statusLabel: "教学示意 · 自建四孔连接板",
   summary: "四孔板贴在两根型材的共面侧面，每根型材通过两颗螺钉和槽内螺母固定。型材轴线夹角为 45°。",
@@ -259,6 +258,108 @@ const threeWayCorner: JointDefinition = {
   ],
 }
 
+const angle135: JointDefinition = {
+  id: "angle-135",
+  title: "斜接 · 135° 挤压角码（TPDC-206）",
+  status: "partial",
+  statusLabel: "教学示意。零件是真网格，位置不是官方装配。",
+  summary: "两根 2020 型材成 135° 外角，挤压角码骑在两根型材的外侧槽口上，每个翼缘一颗 M5 螺钉和一只 T 形螺母。",
+  drawing: "https://static.jlcfa.com/Serial/T02/TPDC/613533886767161346.pdf",
+  install: "先退出两颗 M5 螺钉，再取下角码，最后沿 0° 和 135° 两个方向分开型材。",
+  machining: ["角码本体已带 Z 加工；型材端面没有切角。"],
+  members: [
+    rail("angle-a", "0° 型材", [-20, 26, -17], [0, 0, 0], [-45, 0, 0], "槽口朝角码，型材沿 X 退出。"),
+    rail("angle-b", "135° 型材", [-52.3, 32.6, -17], [0, 0, (3 * Math.PI) / 4], [31.8, 31.8, 0], "槽口朝角码，型材沿 135° 方向退出。"),
+    {
+      id: "angle-kit", role: "connector", label: "挤压角码及附件", code: "TPDC-206-70A14-Z-ZP",
+      quantity: 1, presence: "mesh", assetId: "catalog-1291016987774", nodeName: "*", placementId: "angle-kit",
+      positionMm: [0, 0, 0], travelMm: null, basis: "step-instance",
+      note: "GLB 带 2 颗 M5 螺钉和 2 只 T 形螺母；官方 ZP 清单另列 M5 平垫和弹垫，GLB 里没有。",
+    },
+  ],
+}
+
+const plate45: JointDefinition = {
+  id: "miter-plate-45",
+  title: "斜接 · 45° 型材连接板（TPDD-206）",
+  status: "partial",
+  statusLabel: "教学示意。零件是真网格，位置不是官方装配。",
+  summary: "两根 2020 型材成 45° 斜接，5 孔连接板压在两根型材的顶面槽口上，用 5 颗 M5 螺钉和 T 形螺母固定。",
+  drawing: "https://static.jlcfa.com/Serial/T02/TPDD/631296615830663169.pdf",
+  install: "先退出 5 颗 M5 螺钉，再取下连接板，最后沿两根型材的轴线分开。",
+  machining: ["型材端面为方切，没有按 45° 斜接切角；连接板孔位按官方 2020A 孔径。"],
+  members: [
+    rail("plate45-a", "0° 型材", [-20, 18, -20], [0, 0, 0], [-45, 0, 0], "顶部槽口朝上，连接板压在顶面。"),
+    rail("plate45-b", "45° 型材", [0, 19, -20], [0, 0, Math.PI / 4], [31.8, 31.8, 0], "顶部槽口朝上，连接板压在顶面。"),
+    {
+      id: "plate45-kit", role: "connector", label: "45° 型材连接板及附件", code: "TPDD-206-2020A-ZP",
+      quantity: 1, presence: "mesh", assetId: "catalog-1917564096862", nodeName: "*", placementId: "plate45-kit",
+      positionMm: [0, 0, 2], travelMm: [0, 0, 26], explodeAfter: 0.45, basis: "step-instance",
+      note: "GLB 带 5 颗 M5 螺钉和 5 只 TPAA-N-6-M5；官方 ZP 清单另列 M5 平垫，GLB 里没有。",
+    },
+  ],
+}
+
+const threeWay3D: JointDefinition = {
+  id: "three-way-3d",
+  title: "立体角 · 三维连接件（TPDJ-206）",
+  status: "partial",
+  statusLabel: "教学示意。零件是真网格，位置不是官方装配。",
+  summary: "三根 2020 型材在一点相交，三维连接件坐在角上，三颗紧定螺钉分别顶住三个方向的槽口。",
+  drawing: "https://static.jlcfa.com/Serial/T02/TPDJ/572565793034117121.pdf",
+  install: "先退出三颗紧定螺钉，再沿 X、Y、Z 三个方向分开型材。",
+  machining: ["三根型材端面均为方切，没有为连接件让位。"],
+  members: [
+    rail("three3d-x", "X 向型材", [-110, 10, -10], [0, 0, 0], [-45, 0, 0], "端面在角上，槽口朝向连接件。"),
+    rail("three3d-y", "Y 向型材", [-10, -110, -10], [0, 0, Math.PI / 2], [0, -45, 0], "端面在角上，槽口朝向连接件。"),
+    rail("three3d-z", "Z 向型材", [10, 10, -110], [0, -Math.PI / 2, 0], [0, 0, -45], "端面在角上，槽口朝向连接件。"),
+    {
+      id: "three3d-kit", role: "connector", label: "三维连接件及紧定螺钉", code: "TPDJ-206-ZP-OB",
+      quantity: 1, presence: "mesh", assetId: "catalog-1115469157358", nodeName: "*", placementId: "three3d-kit",
+      positionMm: [0, 0, 0], travelMm: null, basis: "step-instance",
+      note: "GLB 带 3 颗 EDLR-S1-X1-M4-L6 紧定螺钉；位置为教学摆放，未按官方图逐点核对。",
+    },
+  ],
+}
+
+const panelCorner: JointDefinition = {
+  id: "panel-corner",
+  title: "面板角 · 面板角槽连接件（TPCT-206）",
+  status: "partial",
+  statusLabel: "单件展示。当前目录没有面板网格，未做装配示意。",
+  summary: "面板角槽连接件装在 2020 型材的角槽里，两条直角边分别夹住两块面板，用两颗 M5 紧定螺钉锁紧。",
+  drawing: "https://static.jlcfa.com/Serial/T02/TPCT/640337112526262273.pdf",
+  install: "先把两块面板分别推进连接件的两条槽，再从外侧拧紧两颗紧定螺钉。",
+  machining: ["面板厚度和槽深没有在目录里建模。"],
+  members: [
+    {
+      id: "panel-kit", role: "connector", label: "面板角槽连接件及紧定螺钉", code: "TPCT-206-ZP",
+      quantity: 1, presence: "mesh", assetId: "catalog-1485473999732", nodeName: "*", placementId: "panel-kit",
+      positionMm: [0, 0, 0], travelMm: null, basis: "step-instance",
+      note: "GLB 里是 4 颗 EDLR-S1-X1-M4-L6；官方图档写 2 颗 M5 紧定螺钉，型号可能随批次不同，未逐件核对。",
+    },
+  ],
+}
+
+const elastic: JointDefinition = {
+  id: "elastic",
+  title: "弹性 · 弹性连接件（TPDS-206）",
+  status: "partial",
+  statusLabel: "单件展示。只适用 2020D / 2020E 型材，当前目录没有这两种截面。",
+  summary: "弹性连接件卡在 2020D / 2020E 型材的槽口里，靠弹片和一颗 M6×15 螺钉把两根型材端面对接。",
+  drawing: "https://static.jlcfa.com/Serial/T02/TPDS/628131834412019714.pdf",
+  install: "把弹片压进一端型材的槽口，对齐另一端后拧入 M6×15 螺钉。",
+  machining: ["2020D / 2020E 型材不在当前抓取目录里，因此没有做型材装配。"],
+  members: [
+    {
+      id: "elastic-kit", role: "connector", label: "弹性连接件", code: "TPDS-206-A-ZP",
+      quantity: 1, presence: "mesh", assetId: "catalog-2083882010044", nodeName: "*", placementId: "elastic-kit",
+      positionMm: [0, 0, 0], travelMm: null, basis: "step-instance",
+      note: "STEP 是单实体，不含螺钉；官方图档另列 M6×15 螺钉。",
+    },
+  ],
+}
+
 export const connectionJoints: JointDefinition[] = [
-  endToEndJoint, sideTeeJoint, cornerSlotJoint, straightSplice, externalPlate, threeWayCorner,
+  endToEndJoint, sideTeeJoint, cornerSlotJoint, straightSplice, externalPlate, threeWayCorner, angle135, plate45, threeWay3D, panelCorner, elastic,
 ]

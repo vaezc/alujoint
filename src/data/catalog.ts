@@ -650,7 +650,7 @@ const sampleList: Sample[] = [
       },
     ],
     absent: [
-      "不是官方 ZP 套件：螺母是镀锌 TPAA-D，不是镀镍 TPAA-N。螺钉是 EDLA，图上印的是 EDLG-S1-M4-L10。角座是 H6 的 DZ 本体，不是 TYZC-X6-206-2020G。",
+      "不是官方 ZP 套件：螺母已换成目录里的 TPAA-N-6-M4，但螺钉是 EDLA，图上印的是 EDLG-S1-M4-L10；角座是 H6 的 DZ 本体，不是 TYZC-X6-206-2020G。",
       "盖板没有网格。M5 的 T 形螺栓单独在目录里，不放进这组 M4 连接。",
       "没有配合约束，没有载荷。",
     ],
