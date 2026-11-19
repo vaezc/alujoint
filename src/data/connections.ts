@@ -90,16 +90,16 @@ export const sideTeeJoint: JointDefinition = {
   status: "partial",
   statusLabel: "预装示意 · 缺型材加工模型",
   initialPoseLabel: "预装位置",
-  summary: "接收型材侧面开加工孔，T 型螺母放在支接型材槽内。支接型材留在预装位置，便于看清内置连接件及其朝向。",
+  summary: "支接型材靠近端部的侧面开连接件座孔，T 型螺母放在贯通型材槽内。拉开模型可查看套件朝向。",
   drawing: "https://static.jlcfa.com/Serial/T02/TPDF/311673618140880898.pdf",
   install: "支接型材沿连接轴退开，随后套件整体退出。查看螺钉和螺母的分解，可打开 TPDF 单件。",
-  machining: ["按官方图档核对接收（被顶）型材侧面的加工孔；T 型螺母在支接（顶入）型材的槽内。孔径、孔深和实际配合待核对；当前型材网格未加工，因此预留了装入距离。"],
+  machining: ["加工支接杆端部附近的侧孔。贯通杆用现有型材槽容纳螺母。加工尺寸按所购型号图档核对，网页未建侧孔。"],
   members: [
     {
       id: "bar-v", role: "profile", label: "支接型材", code: PROFILE, quantity: 1,
       presence: "mesh", assetId: profile, nodeName: "*", placementId: "bar-v",
-      positionMm: [10, 10, -100], rotation: [0, -Math.PI / 2, 0], travelMm: [0, 0, -60], basis: "illustrative",
-      note: "中心线与连接轴同轴，端面贴在 z = 0 的接收面上。",
+      positionMm: [10, 10, -130], rotation: [0, -Math.PI / 2, 0], travelMm: [0, 0, -60], basis: "illustrative",
+      note: "端面与贯通杆留出 30 mm 示意间隙，便于看到尚未建孔的支接端和连接件。",
     },
     {
       id: "bar-h", role: "profile", label: "贯通型材", code: PROFILE, quantity: 1,
@@ -110,7 +110,7 @@ export const sideTeeJoint: JointDefinition = {
     {
       id: "connector", role: "connector", label: "内置连接件", code: "TPDF-206-D4.5-ZP", quantity: 1,
       presence: "mesh", assetId: tpdf, nodeName: "*", placementId: "connector",
-      positionMm: [0, -4.25, -10], travelMm: [0, 0, -25], explodeAfter: 0.35, explodeAsset: false, basis: "illustrative",
+      positionMm: [0, -4.25, -19], travelMm: [0, 0, -25], explodeAfter: 0.35, explodeAsset: false, basis: "illustrative",
       note: "保留螺钉和 T 形螺母的 STEP 姿态，螺母长边对准贯通型材槽，套件整体留在槽外。",
     },
   ],

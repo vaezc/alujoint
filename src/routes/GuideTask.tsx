@@ -34,6 +34,7 @@ export function GuideTask() {
       <main className="guide-page" id="guide-main">
         <p className="guide-back">
           <Link to="/guide"><ArrowLeft aria-hidden="true" size={15} /> 全部任务</Link>
+          {task.id === "beam-to-post" && <Link to="/case/clothes-rack">返回 V20 衣架案例</Link>}
         </p>
         <header className="guide-intro">
           <p className="guide-kicker">搭建任务</p>
@@ -47,6 +48,10 @@ export function GuideTask() {
                 <h3>{option.label}</h3>
                 <span className={"guide-status " + (option.status === "已核对" ? "is-ok" : "is-todo")}>{option.status}</span>
               </div>
+              {option.sampleId === "scene-side-tee" && <figure className="guide-example">
+                <img src="/guide/tpdf-install.png" alt="竖直的支接型材端部侧面开孔，T 型螺母装入下方水平贯通型材的顶槽。" />
+                <figcaption>嘉立创使用示例：竖杆开孔，横杆槽内放螺母。左右旋转整个接头时，两根杆的作用不变。</figcaption>
+              </figure>}
               <dl className="guide-fields">
                 {fields.map((field) => (
                   <div key={field.key} className="guide-field">

@@ -1,7 +1,9 @@
 // 搭建指南回归：指南 → 任务 → 分步（切步） → 案例 → 底板 → 模型库。
 // 需要先启动生产预览（默认 41731）或开发服务器。
 import { spawn } from "node:child_process"
-import { existsSync } from "node:fs"
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 const port = 9295
 const base = process.env.GUIDE_BASE || "http://127.0.0.1:41731"
@@ -19,8 +21,9 @@ if (!chromePath) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const runDir = mkdtempSync(join(tmpdir(), "alujoint-guide-"))
 const chrome = spawn(chromePath, [
-  "--headless=new", `--remote-debugging-port=${port}`, "--user-data-dir=/tmp/alujoint-guide-smoke",
+  "--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${join(runDir, "profile")}`,
   "--no-first-run", "--no-sandbox", "--window-size=1440,900",
   "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader",
   "about:blank",
@@ -40,85 +43,110 @@ if (!page) { console.error("Chrome 调试端口没有页面"); process.exit(1) }
 const ws = new WebSocket(page.webSocketDebuggerUrl)
 let id = 0
 const pending = new Map()
-const failures = []
 ws.onmessage = (e) => {
   const m = JSON.parse(e.data)
   if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id) }
 }
 const send = (method, params = {}) => new Promise((res) => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params })) })
 const evalv = async (x) => (await send("Runtime.evaluate", { returnByValue: true, expression: x })).result?.result?.value
-const fail = (msg) => { failures.push(msg); console.error("FAIL", msg) }
-const ok = (msg) => console.log("OK", msg)
-
-async function go(path) {
-  await send("Page.navigate", { url: base + path })
-  await sleep(2500)
+async function waitFor(expression, description) {
+  for (let attempt = 0; attempt < 120; attempt++) {
+    if (await evalv(`Boolean(${expression})`)) return
+    await sleep(150)
+  }
+  throw new Error(`${description}（${await evalv("location.href")}）`)
 }
 
-await new Promise((r) => (ws.onopen = r))
-await send("Page.enable"); await send("Runtime.enable")
+async function click(selector) {
+  const query = JSON.stringify(selector)
+  await waitFor(`document.querySelector(${query})`, selector)
+  const point = await evalv(`(() => {
+    const el = document.querySelector(${query})
+    el.scrollIntoView({ block: "center", inline: "nearest" })
+    const r = el.getBoundingClientRect()
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+  })()`)
+  for (const type of ["mousePressed", "mouseReleased"]) {
+    await send("Input.dispatchMouseEvent", { type, ...point, button: "left", clickCount: 1 })
+  }
+}
 
-// 1. 指南首页：5 任务 + 案例入口 + 导航
-await go("/guide")
-const home = await evalv(`(()=>({
-  cards: document.querySelectorAll('.guide-tasks .guide-card').length,
-  caseLink: document.querySelectorAll('.guide-case a[href="/case/clothes-rack"]').length,
-  nav: document.body.innerText.includes('搭建指南'),
-  thumbs: [...document.querySelectorAll('.guide-card-thumb')].every((i)=>i.complete && i.naturalWidth>0),
-}))()`)
-if (home?.cards !== 5) fail(`指南首页任务数=${home?.cards}`); else ok("指南 5 个任务")
-if (!home?.caseLink) fail("指南首页缺案例入口"); else ok("案例入口")
-if (!home?.nav) fail("缺主导航"); else ok("主导航")
+async function follow(path) {
+  await click(`a[href='${path}']`)
+  await waitFor(`location.pathname + location.search === ${JSON.stringify(path)}`, path)
+}
 
-// 2. 任务详情：候选 + 分步入口
-await go("/guide/beam-to-post")
-const task = await evalv(`(()=>({
-  options: document.querySelectorAll('.guide-option').length,
-  steps: [...document.querySelectorAll('.guide-option-actions a')].filter(a=>a.textContent.includes('分步装配')).length,
-}))()`)
-if (!task?.options) fail("任务无候选"); else ok(`任务候选 ${task.options} 个，分步入口 ${task.steps} 个`)
-if (!task?.steps) fail("任务缺分步入口")
+async function backTo(path) {
+  await evalv("history.back()")
+  await waitFor(`location.pathname === ${JSON.stringify(path)}`, "浏览器后退到 " + path)
+}
 
-// 3. 分步：切步改变当前项与高亮
-await go("/guide/step/corner")
-const step1 = await evalv(`(()=>{const li=document.querySelector('.step-list li.is-current');return {text:li?li.innerText:null, total:document.querySelectorAll('.step-list li').length, hasControls:!!document.querySelector('.step-controls')}})()`)
-if (!step1?.total) fail("分步无步骤"); else ok(`分步 ${step1.total} 步，控件 ${step1.hasControls}`)
-if (!step1?.hasControls) fail("分步缺取景/爆炸控件")
-const nextOk = await evalv(`(()=>{const bs=[...document.querySelectorAll('.step-nav button')];const b=bs.find(x=>x.textContent.includes('下一步'));if(!b)return false;const k=Object.keys(b).find(x=>x.startsWith('__reactProps'));b[k].onClick({preventDefault(){},stopPropagation(){}});return true})()`)
-await sleep(600)
-const step2 = await evalv(`(()=>{const li=document.querySelector('.step-list li.is-current');return li?li.innerText:null})()`)
-if (!nextOk || step1.text === step2) fail("下一步未切步"); else ok("切步生效")
+async function expectMobileFit() {
+  await waitFor(`[document.documentElement, ...document.querySelectorAll("main, .step-panel")]
+    .every(el => el.scrollWidth <= el.clientWidth + 1)`, "窄屏内容超出页面")
+}
 
-// 4. 案例：购物车 5 项 + 底板区块
-await go("/case/clothes-rack")
-const cs = await evalv(`(()=>({
-  cart: [...document.querySelectorAll('.case-table tbody tr')].length,
-  bottom: !!document.querySelector('#bottom'),
-  steps: document.querySelectorAll('.case-steps li').length,
-}))()`)
-if (!cs?.bottom) fail("案例缺底板区块"); else ok("案例底板区块")
-if (cs.steps !== 7) fail(`案例装配步骤=${cs.steps}`); else ok("案例 7 步装配")
+const litMeshes = `(() => {
+  let count = 0
+  window.__ALUJOINT_FRAME__?.root.traverse(o => {
+    if (o.isMesh && [o.material].flat().some(m => m.emissiveIntensity === 0.55)) count++
+  })
+  return count
+})()`
 
-// 5. 回模型库：3D 加载
-await go("/?sample=clothes-rack")
-await sleep(4000)
-const meshes = await evalv(`(()=>{const f=window.__ALUJOINT_FRAME__;if(!f)return 0;let n=0;f.root.traverse(o=>{if(o.isMesh)n++});return n})()`)
-if (!meshes) fail("模型库 3D 未加载"); else ok(`模型库 3D 网格 ${meshes}`)
-
-// 6. 直达 + 刷新：分步页刷新后仍在
-await go("/guide/step/side-tee")
-await send("Page.reload", { ignoreCache: true })
-await sleep(3000)
-const reloaded = await evalv(`document.querySelectorAll('.step-list li').length`)
-if (!reloaded) fail("分步页刷新后为空"); else ok(`分步页刷新保留 ${reloaded} 步`)
-
-// 7. 窄屏无横向溢出
-await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true })
-await go("/guide")
-const overflow = await evalv(`(()=>{const el=document.documentElement;return {scroll:el.scrollWidth,client:el.clientWidth}})()`)
-if (!overflow || overflow.scroll > overflow.client + 1) fail(`窄屏横向溢出 ${JSON.stringify(overflow)}`); else ok("窄屏无横向溢出")
-await send("Emulation.clearDeviceMetricsOverride")
-
-ws.close(); chrome.kill("SIGKILL")
-if (failures.length) { console.error(`\nGUIDE_SMOKE_FAIL ${failures.length}`); process.exit(1) }
-console.log("\nGUIDE_SMOKE_OK")
+try {
+  await new Promise((resolve) => { ws.onopen = resolve })
+  await send("Page.enable")
+  await send("Runtime.enable")
+  await send("Page.navigate", { url: base })
+  await follow("/guide")
+  await waitFor("document.querySelectorAll('.guide-tasks a').length === 5", "指南五项任务")
+  await follow("/guide/beam-to-post")
+  for (const joint of ["corner", "side-tee"]) {
+    await follow("/guide/step/" + joint)
+    await click(".step-nav button:last-child")
+    await waitFor("document.querySelector('.step-list li:nth-child(2).is-current')", "下一步")
+    await waitFor(litMeshes + (joint === "corner" ? " >= 2" : " > 0"), "步骤模型高亮")
+    await click(".step-nav button:first-child")
+    await waitFor("document.querySelector('.step-list li:first-child.is-current')", "上一步")
+    await click(".step-controls button:nth-of-type(4)")
+    await waitFor("document.querySelector('.step-slider input').value === '100'", "拉开")
+    await click(".step-controls button:first-child")
+    await click(".step-controls button:nth-child(2)")
+    await waitFor("document.querySelector('.step-slider input').value === '0'", "复位")
+    await send("Page.reload", { ignoreCache: true })
+    await waitFor("document.querySelector('.step-list')", "分步刷新")
+    await backTo("/guide/beam-to-post")
+  }
+  await backTo("/guide")
+  await follow("/case/clothes-rack")
+  await click("a[href='#bottom']")
+  await waitFor("location.hash === '#bottom'", "底板锚点")
+  await follow("/guide/beam-to-post")
+  await follow("/case/clothes-rack")
+  await waitFor("document.querySelectorAll('.case-table tbody:first-of-type')[0]?.rows.length === 5", "五项采购")
+  await waitFor("decodeURIComponent(document.querySelector('a[download]').href).includes('8. 装顶板')", "离线清单")
+  for (const width of [320, 390]) {
+    await send("Emulation.setDeviceMetricsOverride", { width, height: 844, deviceScaleFactor: 1, mobile: true })
+    await expectMobileFit()
+    await follow("/guide/step/clothes-rack")
+    await expectMobileFit()
+    await waitFor("document.querySelectorAll('.step-list li').length === 8", "衣架八步")
+    for (let i = 1; i <= 8; i++) {
+      if (i > 1) await click(".step-nav button:last-child")
+      await waitFor(`document.querySelector('.step-list li:nth-child(${i}).is-current')`, "衣架步骤 " + i)
+      await waitFor(litMeshes + " > 0", "衣架零件高亮")
+      if (i === 6) {
+        const capture = await send("Page.captureScreenshot", { format: "png" })
+        writeFileSync(join(runDir, `rack-shaft-${width}.png`), Buffer.from(capture.result.data, "base64"))
+      }
+    }
+    await follow("/case/clothes-rack")
+  }
+  await follow("/?sample=clothes-rack")
+  await waitFor("document.body.innerText.includes('衣架') && window.__ALUJOINT_FRAME__?.root.children.length > 0", "返回衣架模型")
+  console.log("GUIDE_SMOKE_OK", runDir)
+} finally {
+  ws.close()
+  chrome.kill("SIGKILL")
+}

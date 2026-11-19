@@ -2,6 +2,13 @@ import { ArrowLeft, ExternalLink } from "lucide-react"
 import { Link, useParams } from "react-router-dom"
 import { SiteHeader } from "../components/SiteHeader"
 import { clothesRack } from "../data/clothesRack"
+import { rackAssembly } from "../data/rackAssembly"
+
+const assemblyText = [
+  "V20 衣架装配清单",
+  "按设计稿整理的试装顺序。角码、板托位置与紧固要求请对照随件图。",
+  ...rackAssembly.map((step, index) => `${index + 1}. ${step.title}\n${step.detail}\n检查：${step.check}`),
+].join("\n\n")
 
 // 单买件（购物车五项）。购 vs 装按任务书口径。
 const cart = [
@@ -18,16 +25,6 @@ const kit = [
   { group: "板件", what: "覆盖式顶板 900 × 420 × 12，嵌平底板 858 × 378 × 12", note: "底板四角按原稿轮廓避让；长直段 796 mm、短直段 316 mm。" },
   { group: "配件", what: "压铸角码 32 件、板托/盖板托各 10 件、Ø40 脚杯 4 件", note: "位置和外形为示意。" },
   { group: "孔位", what: "原稿 4 个 M6 螺纹孔 + 4 个 M6 地脚螺孔", note: "孔深与脚杯螺纹啮合长度待核。" },
-]
-
-const assemblySteps = [
-  { title: "预装脚杯与上下框", detail: "先把 4 只脚杯装到立柱底端，再把上下框的四组角码预紧到能微调的程度。", status: "试装建议" },
-  { title: "校方并调水平", detail: "立起框架，靠脚杯调平，确认四根立柱垂直、上下框方正后再把角码完全锁紧。", status: "试装建议" },
-  { title: "放入嵌平底板", detail: "嵌平底板 858 × 378 × 12 mm 落在下层 12 mm 板托上；先装好槽内板托再落板。", status: "试装建议" },
-  { title: "预穿光轴与支座", detail: "先把 Ø16 × 900 mm 光轴穿进两只支座，再把组件抬到顶框下方。", status: "试装建议" },
-  { title: "锁支座到短梁底槽", detail: "每只支座两个 M4×10 螺钉配 T 型螺母，沿同一条短梁底槽固定；确认螺母已横跨槽肩。", status: "试装建议" },
-  { title: "轴居中后锁夹紧螺钉", detail: "光轴居中、两端各伸出约 5 mm，再锁支座自带的夹紧螺钉。", status: "试装建议" },
-  { title: "最后装顶板", detail: "覆盖式顶板 900 × 420 × 12 mm 最后放上，避免先装挡手。", status: "试装建议" },
 ]
 
 const checks = [
@@ -63,6 +60,9 @@ export function Case() {
           <h2>{clothesRack.title}</h2>
           <p>{clothesRack.summary}</p>
           <p className="case-links">
+            <Link className="ui-button" to="/guide/step/clothes-rack">跟着 3D 装衣架</Link>
+            <a href="#assembly">查看完整装配清单</a>
+            <a download="V20-衣架装配清单.txt" href={`data:text/plain;charset=utf-8,${encodeURIComponent("\uFEFF" + assemblyText)}`}>保存离线清单</a>
             <Link to="/?sample=clothes-rack">在 3D 中查看整架</Link>
             <Link to="/guide/beam-to-post">上框短梁怎么接</Link>
             <a href="#bottom">底板怎么固定</a>
@@ -77,7 +77,8 @@ export function Case() {
         </section>
 
         <section className="case-block">
-          <h3>购物车（单买件，5 项）</h3>
+          <h3>购物车（套装及另购件，共 5 项）</h3>
+          <div className="case-table-wrap" tabIndex={0} role="region" aria-label="购物车明细">
           <table className="case-table">
             <thead><tr><th scope="col">料号</th><th scope="col">数量</th><th scope="col">说明</th></tr></thead>
             <tbody>
@@ -86,11 +87,13 @@ export function Case() {
               ))}
             </tbody>
           </table>
-          <p className="case-foot">螺钉购 100 装 4、螺母购 20 装 4，其余按套装随附。</p>
+          </div>
+          <p className="case-foot">光轴和两只支座另购。固定支座的螺钉购 100 颗、螺母购 20 只，各装 4 个；框架套内件见下表。</p>
         </section>
 
         <section className="case-block">
           <h3>套装内明细</h3>
+          <div className="case-table-wrap" tabIndex={0} role="region" aria-label="套装内明细">
           <table className="case-table">
             <thead><tr><th scope="col">项目</th><th scope="col">规格</th><th scope="col">备注</th></tr></thead>
             <tbody>
@@ -99,6 +102,7 @@ export function Case() {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section className="case-block" id="bottom">
@@ -110,19 +114,22 @@ export function Case() {
             <li>工具从板内侧伸入拧紧板托；支座锁紧时检查 T 型螺母横跨槽肩、底脚贴实、螺钉未提前顶到槽底。</li>
             <li>以上为试装建议；板托数量、孔位和实际配合待实物核对。</li>
             <li>支座底脚、角码、板托用的 T 型螺母，需在合框、封堵槽端之前从槽端滑入；框架锁死后能否后装待核对。</li>
-            <li>盖板托用于顶板固定，装配步骤尚未展开，装法与数量待核对。</li>
+            <li>盖板托用于固定覆盖式顶板，孔位和紧固方式以随件图为准。</li>
           </ul>
         </section>
 
-        <section className="case-block">
-          <h3>装配顺序</h3>
+        <section className="case-block" id="assembly">
+          <h3>V20 衣架装配清单</h3>
+          <p>按 V20 设计稿整理的试装顺序。角码与板托的位置以随货图为准。</p>
+          <Link to="/guide/step/clothes-rack">逐步查看 3D 位置</Link>
           <ol className="case-steps">
-            {assemblySteps.map((step, index) => (
+            {rackAssembly.map((step, index) => (
               <li key={step.title}>
                 <span className="case-step-index">{index + 1}</span>
                 <div>
-                  <p className="case-step-title">{step.title} <span className="guide-status is-todo">{step.status}</span></p>
+                  <p className="case-step-title">{step.title}</p>
                   <p>{step.detail}</p>
+                  <p><strong>检查</strong>　{step.check}</p>
                 </div>
               </li>
             ))}

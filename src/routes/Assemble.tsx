@@ -5,6 +5,8 @@ import { SiteHeader } from "../components/SiteHeader"
 import { Viewport, type Selection } from "../components/Viewport"
 import { sampleHasExplode, samples } from "../data/catalog"
 import { assembleSteps } from "../data/guide"
+import { clothesRack } from "../data/clothesRack"
+import { rackAssembly } from "../data/rackAssembly"
 
 const stepJoints = ["corner", "end-to-end", "side-tee"]
 
@@ -15,8 +17,9 @@ export function Assemble() {
 }
 
 function AssembleView({ jointId }: { jointId?: string }) {
-  const sample = useMemo(() => samples.find((item) => item.id === `scene-${jointId}`), [jointId])
-  const steps = jointId ? assembleSteps[jointId] : undefined
+  const isRack = jointId === clothesRack.id
+  const sample = useMemo(() => isRack ? clothesRack : samples.find((item) => item.id === `scene-${jointId}`), [jointId, isRack])
+  const steps = isRack ? rackAssembly : jointId ? assembleSteps[jointId] : undefined
   const [index, setIndex] = useState(0)
   const [frameToken, setFrameToken] = useState(0)
   const [explode, setExplode] = useState(0)
@@ -42,6 +45,18 @@ function AssembleView({ jointId }: { jointId?: string }) {
   const labels = step.highlight.map((id) => sample.placements.find((p) => p.id === id)?.label ?? id)
   const canExplode = sampleHasExplode(sample)
   const last = safeIndex === steps.length - 1
+  const stepList = (
+    <ol className="step-list">
+      {steps.map((item, i) => (
+        <li key={item.title} className={i === safeIndex ? "is-current" : i < safeIndex ? "is-done" : ""}>
+          <button type="button" onClick={() => setIndex(i)}>
+            <span className="case-step-index">{i + 1}</span>
+            <span>{item.title}</span>
+          </button>
+        </li>
+      ))}
+    </ol>
+  )
 
   function publishExplode(next: number) {
     const clamped = Math.min(1, Math.max(0, next))
@@ -89,26 +104,17 @@ function AssembleView({ jointId }: { jointId?: string }) {
             ) : null}
           </div>
         </div>
-        <aside className="step-panel" aria-label="装配步骤">
+        <aside className={isRack ? "step-panel rack-steps" : "step-panel"} aria-label="装配步骤">
           <p className="guide-back">
-            <Link to="/guide"><ArrowLeft aria-hidden="true" size={15} /> 搭建指南</Link>
+            <Link to={isRack ? "/case/clothes-rack" : "/guide"}><ArrowLeft aria-hidden="true" size={15} /> {isRack ? "返回 V20 衣架案例" : "搭建指南"}</Link>
           </p>
           <p className="guide-kicker">分步装配 · {steps.length} 步</p>
           <h2>{sample.title}</h2>
-          <ol className="step-list">
-            {steps.map((item, i) => (
-              <li key={item.title} className={i === safeIndex ? "is-current" : i < safeIndex ? "is-done" : ""}>
-                <button type="button" onClick={() => setIndex(i)}>
-                  <span className="case-step-index">{i + 1}</span>
-                  <span>{item.title}</span>
-                </button>
-              </li>
-            ))}
-          </ol>
+          {!isRack && stepList}
           <div className="step-detail">
-            <p className="step-detail-title">{step.title}</p>
+            <p className="step-detail-title">{isRack && `${safeIndex + 1} / ${steps.length}　`}{step.title}</p>
             <p>{step.detail}</p>
-            <p className="step-hint">本步高亮：{labels.join("、")}</p>
+            {isRack ? <p className="step-hint"><strong>检查</strong>　{rackAssembly[safeIndex].check}</p> : <p className="step-hint">本步高亮：{labels.join("、")}</p>}
           </div>
           <div className="step-nav">
             <button type="button" className="ui-button" disabled={safeIndex === 0} onClick={() => setIndex((v) => Math.max(0, v - 1))}>
@@ -118,6 +124,7 @@ function AssembleView({ jointId }: { jointId?: string }) {
               下一步 <ChevronRight aria-hidden="true" size={15} />
             </button>
           </div>
+          {isRack && <details className="rack-step-index"><summary>查看八步目录</summary>{stepList}</details>}
         </aside>
       </div>
     </div>
