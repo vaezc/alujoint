@@ -1,4 +1,3 @@
-import { Box } from "lucide-react"
 import { Link } from "react-router-dom"
 
 type SiteHeaderProps = {
@@ -10,7 +9,7 @@ export function SiteHeader({ active }: SiteHeaderProps) {
   return (
     <header className="app-header">
       <Link className="brand" to="/" aria-label="回到模型库">
-        <span className="brand-mark"><Box aria-hidden="true" size={20} /></span>
+        <span className="brand-mark" aria-hidden="true" />
         <h1>铝构 <span>AluJoint</span></h1>
       </Link>
       <nav className="site-nav" aria-label="主导航">

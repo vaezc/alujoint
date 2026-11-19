@@ -131,7 +131,7 @@ export function App() {
       <a className="skip-link" href="#model-view">跳到三维视图</a>
       <header className="app-header">
         <div className="brand">
-          <span className="brand-mark"><Box aria-hidden="true" size={20} /></span>
+          <span className="brand-mark" aria-hidden="true" />
           <h1>铝构 <span>AluJoint</span></h1>
         </div>
         <span className="workspace-name">三维装配工作台</span>

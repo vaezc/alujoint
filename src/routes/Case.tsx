@@ -58,7 +58,7 @@ export function Case() {
         <header className="guide-intro case-intro">
           <div className="case-intro-copy">
             <p className="guide-kicker">完整案例 · 嘉立创 V20</p>
-            <h2>{clothesRack.title}</h2>
+            <h2>铝型材落地衣架</h2>
             <p>{clothesRack.summary}</p>
             <p className="case-links">
               <Link className="ui-button case-primary" to="/guide/step/clothes-rack"><Box size={16} aria-hidden="true" />跟着 3D 装衣架</Link>
@@ -72,6 +72,7 @@ export function Case() {
           </div>
           <Link className="case-preview" to="/?sample=clothes-rack">
             <img src="/guide/v20-assembly.png" alt="V20 衣架整架视图，光轴位于顶板下方，底板嵌在下框内" />
+            <small>框架平面 · 900 × 420 mm</small>
             <span>在 3D 中查看整架 <ArrowUpRight aria-hidden="true" size={15} /></span>
           </Link>
         </header>
