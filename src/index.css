@@ -515,3 +515,9 @@ button:not(:disabled, [aria-disabled="true"]), summary {
 .step-slider input { inline-size: 8rem; }
 
 .case-foot { margin-block-start: 0.5rem; color: var(--muted); font-size: 0.8125rem; }
+
+.guide-card-thumb {
+  inline-size: 100%; aspect-ratio: 16 / 10; object-fit: cover;
+  border-radius: calc(var(--radius) * 0.8); background: var(--model-surface);
+  border: 1px solid var(--line);
+}

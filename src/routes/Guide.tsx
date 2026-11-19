@@ -20,6 +20,7 @@ export function Guide() {
           {guideTasks.map((task) => (
             <li key={task.id}>
               <Link className="guide-card" to={`/guide/${task.id}`}>
+                <img className="guide-card-thumb" src={`/guide/${task.id}.png`} alt="" loading="lazy" />
                 <span className="guide-card-title">{task.title}</span>
                 <span className="guide-card-summary">{task.summary}</span>
                 <span className="guide-card-meta">

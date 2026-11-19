@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "smoke": "node scripts/browser-smoke.mjs",
+    "smoke:guide": "node scripts/guide-smoke.mjs",
     "compress:models": "node scripts/compress_models.mjs"
   },
   "dependencies": {
