@@ -615,9 +615,11 @@ try {
     fail("衣架外廓应为 920 × 1502 × 440 mm：" + JSON.stringify(rack))
   }
   const rackCartSpecs = [
+    "V20",
+    "32 件",
     "BAGA-C2-A-A-N-D16-L900",
     "BETV-C2N1-GP-D16-H50",
-    "EDLA-S1-M4-L12",
+    "EDLA-S1-M4-L10",
     "购 100 颗，装 4 颗",
     "TPAA-N-6-M4",
     "购 20 颗，装 4 颗",
@@ -638,13 +640,22 @@ try {
     const supports = []
     const screws = []
     const nuts = []
+    let gussets = 0
     root.traverse((part) => {
       if (part.name === "ShaftClamp") supports.push(box(part))
       if (part.name.startsWith("M4MountScrew")) screws.push(box(part))
       if (part.name.startsWith("M4SlotNut")) nuts.push(box(part))
+      if (part.name.startsWith("Gusset") && part.isMesh) gussets += 1
     })
     supports.sort((a, b) => a.min.x - b.min.x)
-    if (supports.length !== 2 || root.getObjectByName("OffsetAdapter")) return null
+    const insetBoard = root.getObjectByName("InsetPlywood")
+    if (supports.length !== 2 || !insetBoard || root.getObjectByName("OffsetAdapter")) return null
+    const boardBox = box(insetBoard)
+    const points = insetBoard.geometry.attributes.position
+    let squareCornerVertices = 0
+    for (let i = 0; i < points.count; i += 1) {
+      if (Math.abs(points.getX(i)) > 0.428 && Math.abs(points.getZ(i)) > 0.188) squareCornerVertices += 1
+    }
     return [
       shaftBox.max.x - shaftBox.min.x,
       supports[1].min.x - supports[0].min.x,
@@ -653,11 +664,17 @@ try {
       supports[0].max.y - shaftBox.max.y,
       screws.length,
       nuts.length,
+      screws[0]?.max.y - supports[0].max.y,
+      gussets,
+      boardBox.max.x - boardBox.min.x,
+      boardBox.max.y - boardBox.min.y,
+      boardBox.max.z - boardBox.min.z,
+      squareCornerVertices,
     ]
   })()`)
-  const expectedFit = [900, 880, 5, 5, 42, 4, 4]
-  if (!shaftFit || shaftFit.some((value, index) => Math.abs(value - expectedFit[index]) > 0.05)) {
-    fail("衣架光轴长度、支座间距、两端伸出、梁下净空或紧固件数量不符：" + JSON.stringify(shaftFit))
+  const expectedFit = [900, 880, 5, 5, 42, 4, 4, 4, 32, 858, 12, 378, 0]
+  if (!shaftFit || shaftFit.some((value, index) => !Number.isFinite(value) || Math.abs(value - expectedFit[index]) > 0.05)) {
+    fail("衣架光轴长度、支座间距、两端伸出、梁下净空、紧固件、角码或嵌平底板不符：" + JSON.stringify(shaftFit))
   }
   await shot(send, "/tmp/clothes-rack.png")
 
