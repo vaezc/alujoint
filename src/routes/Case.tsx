@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, Box, Download, ExternalLink, ListChecks } from "lucide-react"
 import { Link, useParams } from "react-router-dom"
 import { SiteHeader } from "../components/SiteHeader"
 import { clothesRack } from "../data/clothesRack"
@@ -55,18 +55,25 @@ export function Case() {
         <p className="guide-back">
           <Link to="/guide"><ArrowLeft aria-hidden="true" size={15} /> 搭建指南</Link>
         </p>
-        <header className="guide-intro">
-          <p className="guide-kicker">完整案例 · 嘉立创 V20</p>
-          <h2>{clothesRack.title}</h2>
-          <p>{clothesRack.summary}</p>
-          <p className="case-links">
-            <Link className="ui-button" to="/guide/step/clothes-rack">跟着 3D 装衣架</Link>
-            <a href="#assembly">查看完整装配清单</a>
-            <a download="V20-衣架装配清单.txt" href={`data:text/plain;charset=utf-8,${encodeURIComponent("\uFEFF" + assemblyText)}`}>保存离线清单</a>
-            <Link to="/?sample=clothes-rack">在 3D 中查看整架</Link>
-            <Link to="/guide/beam-to-post">上框短梁怎么接</Link>
-            <a href="#bottom">底板怎么固定</a>
-          </p>
+        <header className="guide-intro case-intro">
+          <div className="case-intro-copy">
+            <p className="guide-kicker">完整案例 · 嘉立创 V20</p>
+            <h2>{clothesRack.title}</h2>
+            <p>{clothesRack.summary}</p>
+            <p className="case-links">
+              <Link className="ui-button case-primary" to="/guide/step/clothes-rack"><Box size={16} aria-hidden="true" />跟着 3D 装衣架</Link>
+              <a className="ui-button" href="#assembly"><ListChecks size={16} aria-hidden="true" />查看完整装配清单</a>
+              <a download="V20-衣架装配清单.txt" href={`data:text/plain;charset=utf-8,${encodeURIComponent("\uFEFF" + assemblyText)}`}><Download size={15} aria-hidden="true" />保存离线清单</a>
+            </p>
+            <p className="case-related">
+              <Link to="/guide/beam-to-post">上框短梁怎么接</Link>
+              <a href="#bottom">底板怎么固定</a>
+            </p>
+          </div>
+          <Link className="case-preview" to="/?sample=clothes-rack">
+            <img src="/guide/v20-assembly.png" alt="V20 衣架整架视图，光轴位于顶板下方，底板嵌在下框内" />
+            <span>在 3D 中查看整架 <ArrowUpRight aria-hidden="true" size={15} /></span>
+          </Link>
         </header>
 
         <section className="case-block">

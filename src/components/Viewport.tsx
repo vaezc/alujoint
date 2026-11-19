@@ -173,10 +173,10 @@ function Stage({ sample, explodeRef, showExplodeLabels, selection, frameToken, o
         args={[400, 400]}
         cellSize={10}
         cellThickness={0.6}
-        cellColor="#a4b7ce"
+        cellColor="#a7b7ac"
         sectionSize={50}
         sectionThickness={1.15}
-        sectionColor="#8298b4"
+        sectionColor="#849b8d"
         fadeDistance={700}
         fadeStrength={1}
         infiniteGrid
