@@ -401,3 +401,117 @@ button:not(:disabled, [aria-disabled="true"]), summary {
 @media (prefers-reduced-motion: reduce) {
   .workspace-sheet { animation: none; transition: none; }
 }
+
+/* ---- 主导航 & 搭建指南 ---- */
+.site-nav { display: flex; gap: 0.25rem; margin-inline-start: 0.5rem; }
+.site-nav a {
+  display: inline-flex; align-items: center; min-block-size: 2rem;
+  padding-inline: 0.75rem; border-radius: var(--radius);
+  color: #c9d4e6; text-decoration: none; font-size: 0.875rem;
+}
+.site-nav a:hover { background: rgb(255 255 255 / 0.08); color: #fff; }
+.site-nav a[aria-current="page"] { background: rgb(255 255 255 / 0.14); color: #fff; }
+
+.guide-page {
+  flex: 1; min-block-size: 0; overflow-y: auto;
+  padding: 1.5rem 1.25rem 3rem;
+  background: var(--workspace);
+}
+.guide-page > * { max-inline-size: 64rem; margin-inline: auto; }
+.guide-kicker { font-size: 0.75rem; letter-spacing: 0.14em; color: var(--muted); }
+.guide-intro h2 { margin-block-start: 0.375rem; font-size: 1.5rem; }
+.guide-intro p { margin-block-start: 0.5rem; color: var(--muted); line-height: 1.7; max-inline-size: 48rem; }
+.guide-back { margin-block-end: 1rem; }
+.guide-back a { display: inline-flex; gap: 0.375rem; align-items: center; color: var(--accent); text-decoration: none; font-size: 0.875rem; }
+.guide-tasks {
+  display: grid; gap: 0.875rem;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  margin-block-start: 1.5rem; padding: 0; list-style: none;
+}
+.guide-card {
+  display: flex; flex-direction: column; gap: 0.5rem; block-size: 100%;
+  padding: 1rem 1.125rem; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--panel-radius); text-decoration: none; color: inherit;
+}
+.guide-card:hover { border-color: var(--accent-line); box-shadow: 0 6px 20px rgb(23 34 53 / 0.06); }
+.guide-card-title { font-size: 1.0625rem; font-weight: 600; }
+.guide-card-summary { color: var(--muted); font-size: 0.875rem; line-height: 1.6; flex: 1; }
+.guide-card-meta { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--accent); font-size: 0.8125rem; }
+
+.guide-options { display: grid; gap: 1rem; margin-block-start: 1.5rem; padding: 0; list-style: none; }
+.guide-option { background: var(--surface); border: 1px solid var(--line); border-radius: var(--panel-radius); padding: 1rem 1.125rem; }
+.guide-option-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.guide-option-head h3 { font-size: 1rem; font-weight: 600; }
+.guide-status { font-size: 0.75rem; padding: 0.125rem 0.5rem; border-radius: 999px; white-space: nowrap; }
+.guide-status.is-ok { background: #e6f5ec; color: #1d7a45; }
+.guide-status.is-todo { background: #fdf0e2; color: #a35a12; }
+.guide-fields { margin-block-start: 0.75rem; display: grid; gap: 0.5rem; }
+.guide-field { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 0.5rem; font-size: 0.875rem; }
+.guide-field dt { color: var(--muted); }
+.guide-field dd { margin: 0; line-height: 1.6; }
+.guide-option-actions { margin-block-start: 0.875rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+@media (width < 36rem) {
+  .guide-field { grid-template-columns: 1fr; gap: 0.125rem; }
+}
+
+/* ---- 完整案例 ---- */
+.case-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-block-start: 0.75rem; }
+.case-links a { color: var(--accent); font-size: 0.875rem; }
+.case-block {
+  margin-block-start: 2rem; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--panel-radius); padding: 1.125rem 1.25rem;
+}
+.case-block h3 { font-size: 1rem; font-weight: 600; margin-block-end: 0.75rem; }
+.case-bullets { margin: 0; padding-inline-start: 1.1rem; display: grid; gap: 0.4rem; color: var(--muted); line-height: 1.7; font-size: 0.875rem; }
+.case-bullets a { color: var(--accent); }
+.case-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.case-table th, .case-table td { text-align: start; padding: 0.5rem 0.6rem; border-block-end: 1px solid var(--line); vertical-align: top; }
+.case-table thead th { color: var(--muted); font-weight: 600; }
+.case-table tbody th { font-weight: 600; white-space: nowrap; }
+.case-steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.75rem; }
+.case-steps li { display: flex; gap: 0.75rem; }
+.case-step-index {
+  flex: none; display: grid; place-items: center; inline-size: 1.6rem; block-size: 1.6rem;
+  border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 0.8125rem; font-weight: 600;
+}
+.case-step-title { font-weight: 600; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.case-steps p { color: var(--muted); line-height: 1.6; font-size: 0.875rem; margin-block-start: 0.2rem; }
+.case-checks { margin: 0; display: grid; gap: 0.75rem; }
+.case-checks dt { font-weight: 600; }
+.case-checks dd { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.875rem; line-height: 1.6; }
+
+/* ---- 分步装配 ---- */
+.step-layout { flex: 1; min-block-size: 0; display: grid; grid-template-columns: minmax(0, 1fr) 22rem; background: var(--workspace); }
+.step-stage { min-block-size: 0; background: var(--model-surface); }
+.step-panel { min-block-size: 0; overflow-y: auto; padding: 1.25rem; background: var(--surface); border-inline-start: 1px solid var(--line); }
+.step-panel h2 { font-size: 1.125rem; margin-block: 0.25rem 0.75rem; }
+.step-list { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 0.25rem; }
+.step-list button { display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.5rem; border: 0; border-radius: var(--radius); background: transparent; text-align: start; color: var(--ink); font-size: 0.875rem; }
+.step-list button:hover { background: var(--surface-muted); }
+.step-list li.is-current button { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.step-list li.is-done button { color: var(--muted); }
+.step-detail { padding: 0.875rem 1rem; border: 1px solid var(--line); border-radius: var(--panel-radius); background: var(--surface-muted); }
+.step-detail-title { font-weight: 600; }
+.step-detail p { margin-block-start: 0.375rem; color: var(--muted); font-size: 0.875rem; line-height: 1.6; }
+.step-hint { color: var(--accent) !important; }
+.step-nav { display: flex; gap: 0.5rem; margin-block-start: 1rem; }
+@media (width < 68rem) {
+  .step-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(18rem, 55%) minmax(0, 1fr); }
+  .step-panel { border-inline-start: 0; border-block-start: 1px solid var(--line); }
+}
+
+/* ---- 指南案例入口 & 分步控件 ---- */
+.guide-case { margin-block-start: 2rem; }
+.guide-case h3 { font-size: 1rem; font-weight: 600; margin-block-end: 0.75rem; }
+.step-stage { position: relative; }
+.step-controls {
+  position: absolute; inset-inline: 0; inset-block-end: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+  padding: 0.5rem 0.75rem; background: rgb(255 255 255 / 0.92);
+  border-block-start: 1px solid var(--line);
+}
+.step-slider { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: var(--muted); }
+.step-slider input { inline-size: 8rem; }
+
+.case-foot { margin-block-start: 0.5rem; color: var(--muted); font-size: 0.8125rem; }

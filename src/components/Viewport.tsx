@@ -57,7 +57,7 @@ type ViewportProps = {
   sample: Sample
   explodeRef: RefObject<number>
   showExplodeLabels: boolean
-  selection: Selection | null
+  selection: Selection | Selection[] | null
   frameToken: number
   onSelect: (selection: Selection | null) => void
   onBounds: (bounds: BoundsMm | null) => void
@@ -257,7 +257,7 @@ function PlacedModel({
   nodeExplodeMm: Record<string, Vec3>
   nodeExplodeUntil: number
   explodeRef: RefObject<number>
-  selection: Selection | null
+  selection: Selection | Selection[] | null
   onSelect: (selection: Selection | null) => void
 }) {
   const gltf = useGLTF(url)
@@ -406,13 +406,17 @@ function selectableName(object: Object3D, names: ReadonlySet<string>): string | 
   return null
 }
 
-function chosen(object: Object3D, placementId: string, selection: Selection | null): boolean {
-  if (!selection || selection.placementId !== placementId) return false
-  if (selection.nodeName === "*") return true
-  let current: Object3D | null = object
-  while (current) {
-    if (current.name === selection.nodeName) return true
-    current = current.parent
+function chosen(object: Object3D, placementId: string, selection: Selection | Selection[] | null): boolean {
+  if (!selection) return false
+  const list = Array.isArray(selection) ? selection : [selection]
+  for (const item of list) {
+    if (item.placementId !== placementId) continue
+    if (item.nodeName === "*") return true
+    let current: Object3D | null = object
+    while (current) {
+      if (current.name === item.nodeName) return true
+      current = current.parent
+    }
   }
   return false
 }

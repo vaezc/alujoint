@@ -1,6 +1,7 @@
 import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from "@ui-sdk/react/dialog"
 import { Box, ChevronRight, Crosshair, FileText, Info, LibraryBig, Maximize, Pause, Play, RotateCcw, X } from "lucide-react"
 import { useEffect, useRef, useState, type ReactNode } from "react"
+import { Link } from "react-router-dom"
 import { CatalogList } from "./components/CatalogList"
 import { DetailPanel } from "./components/DetailPanel"
 import { Viewport, type BoundsMm, type Selection } from "./components/Viewport"
@@ -134,6 +135,10 @@ export function App() {
           <h1>铝构 <span>AluJoint</span></h1>
         </div>
         <span className="workspace-name">三维装配工作台</span>
+        <nav className="site-nav" aria-label="主导航">
+          <Link to="/" aria-current="page">模型库</Link>
+          <Link to="/guide">搭建指南</Link>
+        </nav>
         <div className="mobile-actions">
           <WorkspaceSheet
             title="目录"
