@@ -42,6 +42,8 @@ function AssembleView({ jointId }: { jointId?: string }) {
   const safeIndex = Math.min(index, steps.length - 1)
   const step = steps[safeIndex]
   const selection: Selection[] = step.highlight.map((id) => ({ placementId: id, nodeName: "*" }))
+  const installed = isRack ? rackAssembly[safeIndex].installed : undefined
+  const ghosted = installed ? new Set(sample.placements.map(({ id }) => id).filter((id) => !installed.includes(id))) : undefined
   const labels = step.highlight.map((id) => sample.placements.find((p) => p.id === id)?.label ?? id)
   const canExplode = sampleHasExplode(sample)
   const last = safeIndex === steps.length - 1
@@ -74,6 +76,7 @@ function AssembleView({ jointId }: { jointId?: string }) {
             explodeRef={explodeRef}
             showExplodeLabels={explode > 0.18}
             selection={selection}
+            ghosted={ghosted}
             frameToken={frameToken}
             onSelect={() => {}}
             onBounds={() => {}}
@@ -115,6 +118,7 @@ function AssembleView({ jointId }: { jointId?: string }) {
             <p className="step-detail-title">{isRack && `${safeIndex + 1} / ${steps.length}　`}{step.title}</p>
             <p>{step.detail}</p>
             {isRack ? <p className="step-hint"><strong>检查</strong>　{rackAssembly[safeIndex].check}</p> : <p className="step-hint">本步高亮：{labels.join("、")}</p>}
+            {ghosted && ghosted.size > 0 ? <p className="step-ghost-hint">灰色轮廓是这一步还没装的零件。</p> : null}
           </div>
           <div className="step-nav">
             <button type="button" className="ui-button" disabled={safeIndex === 0} onClick={() => setIndex((v) => Math.max(0, v - 1))}>

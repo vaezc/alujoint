@@ -6,7 +6,23 @@ function parts(...prefixes: string[]) {
     .map(({ id }) => id)
 }
 
-export const rackAssembly = [
+const beams = ["upper", "lower"].flatMap((tier) =>
+  ["long", "short"].flatMap((kind) => [`${tier}-${kind}--1`, `${tier}-${kind}-1`]),
+)
+const frame = parts("upright", "foot", "upper-gusset", "lower-gusset", ...beams)
+const lowerClips = parts("lower-long-clip", "lower-short-clip")
+const shaftKit = ["shaft", ...parts("shaft-support")]
+
+type RackStep = {
+  title: string
+  detail: string
+  check: string
+  highlight: string[]
+  /** Parts already in place at this step; the rest are drawn as outlines. Omit to show everything. */
+  installed?: string[]
+}
+
+export const rackAssembly: RackStep[] = [
   {
     title: "分料，认清上下板",
     detail: "在平地铺软垫。分出 4 根 1450 mm 立柱、4 根 860 mm 长梁和 4 根 380 mm 短梁。四角有避让的 858 × 378 mm 板放下层；900 × 420 mm 整板最后盖顶。备好匹配螺钉的内六角扳手、卷尺和水平尺。",
@@ -18,6 +34,7 @@ export const rackAssembly = [
     detail: "挑出上框左右两根短梁，标出朝下的一面。每根底槽从端头滑入 2 只槽 6 M4 螺母，移到梁中部，留给一只支座。同一槽若还要装角码，按最终位置从远到近送入槽内件。按供货图在上下框和立柱相应槽内预放角码、下层板托及上层盖板托所需的槽内件。",
     check: "拿支座贴一次短梁，两孔都对同一底槽，孔距约 42 mm。把预留的 4 只螺母与角码用件分开确认，再合框。",
     highlight: parts("upper-short--1", "upper-short-1", "shaft-support"),
+    installed: parts("upper-short--1", "upper-short-1", "shaft-support"),
   },
   {
     title: "装脚杯，松装框架",
@@ -35,30 +52,35 @@ export const rackAssembly = [
       "lower-short--1",
       "lower-short-1",
     ),
+    installed: frame,
   },
   {
     title: "校方、调平，固定板托",
     detail: "扶稳架子，在同一组角点量上下框各自的两条对角线，调到分别相等；再检查立柱垂直、横梁水平、四脚落地。分几次交替紧固角码并复测。按供货图安装下框内侧的 12 mm 板托，趁板还没落下从内侧紧固。",
     check: "用底板边缘试靠板托，确认各承托面共面，板面设计高度与下框上表面齐平。紧固件的扭矩以对应配件说明为准。",
     highlight: parts("lower-long-clip", "lower-short-clip", "foot"),
+    installed: [...frame, ...lowerClips],
   },
   {
     title: "从架内落入嵌平底板",
     detail: "从开放的侧面将底板斜送入架内，在下框上方转平，对齐四角缺口，再水平慢慢落到板托上。遇到干涉就抬起板，检查框是否方正、角码方向和板托位置。",
     check: "逐角轻按，四角不翘，板边与下框齐平，各板托都实际接触板底。按随件说明完成板件固定。",
     highlight: ["lower-board", ...parts("lower-long-clip", "lower-short-clip")],
+    installed: [...frame, ...lowerClips, "lower-board"],
   },
   {
     title: "穿轴，托住组件装到梁下",
     detail: "在台面上略松两只支座自带的夹紧螺钉，把 Ø16 × 900 mm 光轴穿过两个轴孔。两只支座底脚朝上，分别对准左右短梁底槽。请一人持续托住组件，另一人将每只底脚的两颗 M4×10 拧入预留螺母，四颗先带上螺纹。",
     check: "支座位于短梁下方，底脚两孔沿同一条槽。确认每只螺母横跨槽肩，每颗螺钉均能压紧底脚且没有提前顶槽底。",
     highlight: ["shaft", ...parts("shaft-support")],
+    installed: [...frame, ...lowerClips, "lower-board", ...shaftKit],
   },
   {
     title: "居中锁轴，试穿衣架钩",
     detail: "把两支座调到相同的前后位置，保持轴孔同轴，交替紧固底脚。沿轴向居中后，再锁紧两只支座自带的夹紧螺钉。居中参考值为轴两端各伸出支座外侧约 5 mm。",
     check: "轻推轴端确认没有窜动。短梁底面到光轴顶面的设计净空为 42 mm，拿平时用的最大衣架钩试挂、试取一次。",
     highlight: ["shaft", ...parts("shaft-support")],
+    installed: [...frame, ...lowerClips, "lower-board", ...shaftKit],
   },
   {
     title: "装顶板，在使用位置复查",

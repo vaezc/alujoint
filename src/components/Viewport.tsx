@@ -61,6 +61,8 @@ type ViewportProps = {
   frameToken: number
   onSelect: (selection: Selection | null) => void
   onBounds: (bounds: BoundsMm | null) => void
+  /** Placements drawn as translucent outlines, e.g. parts not yet installed in a step-by-step guide. */
+  ghosted?: ReadonlySet<string>
 }
 
 function hasWebGL(): boolean {
@@ -118,7 +120,7 @@ function Studio() {
   return null
 }
 
-function Stage({ sample, explodeRef, showExplodeLabels, selection, frameToken, onSelect, onBounds }: ViewportProps) {
+function Stage({ sample, explodeRef, showExplodeLabels, selection, frameToken, onSelect, onBounds, ghosted }: ViewportProps) {
   const outer = useRef<Group>(null)
   const inner = useRef<Group>(null)
   const controls = useRef<OrbitControlsImpl>(null)
@@ -204,6 +206,7 @@ function Stage({ sample, explodeRef, showExplodeLabels, selection, frameToken, o
             nodeExplodeUntil={sample.assembly ? screwReleaseProgress : 1}
             explodeRef={explodeRef}
             selection={selection}
+            ghost={ghosted?.has(placement.id) ?? false}
             onSelect={onSelect}
           />
         ))}
@@ -239,6 +242,7 @@ function PlacedModel({
   nodeExplodeUntil,
   explodeRef,
   selection,
+  ghost = false,
   onSelect,
 }: {
   placementId: string
@@ -258,6 +262,7 @@ function PlacedModel({
   nodeExplodeUntil: number
   explodeRef: RefObject<number>
   selection: Selection | Selection[] | null
+  ghost?: boolean
   onSelect: (selection: Selection | null) => void
 }) {
   const gltf = useGLTF(url)
@@ -308,9 +313,9 @@ function PlacedModel({
     clone.traverse((object) => {
       const mesh = asMesh(object)
       if (!mesh) return
-      paint(mesh.material, chosen(object, placementId, selection))
+      paint(mesh.material, !ghost && chosen(object, placementId, selection), ghost)
     })
-  }, [clone, explodeAfter, explodeRef, explodeUntil, groupExplodeMm, nodeExplodeMm, nodeExplodeUntil, placementId, positionMm, selection])
+  }, [clone, explodeAfter, explodeRef, explodeUntil, ghost, groupExplodeMm, nodeExplodeMm, nodeExplodeUntil, placementId, positionMm, selection])
 
   return (
     <group ref={root} position={positionMm} rotation={rotation}>
@@ -329,8 +334,8 @@ function PlacedModel({
           }}
         />
       </group>
-      {showLabels ? <PartLabel text={label} position={partLabel} /> : null}
-      {showLabels ? Object.entries(nodeLabels).map(([name, text]) => {
+      {showLabels && !ghost ? <PartLabel text={label} position={partLabel} /> : null}
+      {showLabels && !ghost ? Object.entries(nodeLabels).map(([name, text]) => {
         const node = clone.getObjectByName(name)
         return node ? <PartLabel key={name} text={text} anchor={node} /> : null
       }) : null}
@@ -388,12 +393,18 @@ function viewMaterial(material: Material, tint?: string): Material {
   return next
 }
 
-function paint(material: Material | Material[], selected: boolean) {
+function paint(material: Material | Material[], selected: boolean, ghost = false) {
   const list = Array.isArray(material) ? material : [material]
   for (const entry of list) {
     if (!(entry instanceof MeshStandardMaterial)) continue
     entry.emissive = new Color(selected ? "#b85a32" : "#000000")
     entry.emissiveIntensity = selected ? 0.55 : 0
+    if (entry.transparent !== ghost) {
+      entry.transparent = ghost
+      entry.needsUpdate = true
+    }
+    entry.opacity = ghost ? 0.2 : 1
+    entry.depthWrite = !ghost
   }
 }
 
