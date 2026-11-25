@@ -63,6 +63,7 @@ type ViewportProps = {
   onBounds: (bounds: BoundsMm | null) => void
   /** Placements drawn as translucent outlines, e.g. parts not yet installed in a step-by-step guide. */
   ghosted?: ReadonlySet<string>
+  solidNodes?: Record<string, string>
 }
 
 function hasWebGL(): boolean {
@@ -120,7 +121,7 @@ function Studio() {
   return null
 }
 
-function Stage({ sample, explodeRef, showExplodeLabels, selection, frameToken, onSelect, onBounds, ghosted }: ViewportProps) {
+function Stage({ sample, explodeRef, showExplodeLabels, selection, frameToken, onSelect, onBounds, ghosted, solidNodes }: ViewportProps) {
   const outer = useRef<Group>(null)
   const inner = useRef<Group>(null)
   const controls = useRef<OrbitControlsImpl>(null)
@@ -207,6 +208,7 @@ function Stage({ sample, explodeRef, showExplodeLabels, selection, frameToken, o
             explodeRef={explodeRef}
             selection={selection}
             ghost={ghosted?.has(placement.id) ?? false}
+            solidNode={solidNodes?.[placement.id]}
             onSelect={onSelect}
           />
         ))}
@@ -243,6 +245,7 @@ function PlacedModel({
   explodeRef,
   selection,
   ghost = false,
+  solidNode,
   onSelect,
 }: {
   placementId: string
@@ -263,6 +266,7 @@ function PlacedModel({
   explodeRef: RefObject<number>
   selection: Selection | Selection[] | null
   ghost?: boolean
+  solidNode?: string
   onSelect: (selection: Selection | null) => void
 }) {
   const gltf = useGLTF(url)
@@ -313,9 +317,10 @@ function PlacedModel({
     clone.traverse((object) => {
       const mesh = asMesh(object)
       if (!mesh) return
-      paint(mesh.material, !ghost && chosen(object, placementId, selection), ghost)
+      const ghostMesh = ghost && !(solidNode && mesh.userData.name === solidNode)
+      paint(mesh.material, !ghostMesh && chosen(object, placementId, selection), ghostMesh)
     })
-  }, [clone, explodeAfter, explodeRef, explodeUntil, ghost, groupExplodeMm, nodeExplodeMm, nodeExplodeUntil, placementId, positionMm, selection])
+  }, [clone, explodeAfter, explodeRef, explodeUntil, ghost, solidNode, groupExplodeMm, nodeExplodeMm, nodeExplodeUntil, placementId, positionMm, selection])
 
   return (
     <group ref={root} position={positionMm} rotation={rotation}>

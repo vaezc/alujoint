@@ -28,6 +28,17 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify the production build in Chrome
+        shell: bash
+        run: |
+          export CHROME_PATH="$(command -v google-chrome)"
+          npm run preview -- --host 127.0.0.1 --port 41731 --strictPort &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          curl --fail --silent --retry 20 --retry-connrefused --retry-delay 1 http://127.0.0.1:41731/ >/dev/null
+          npm run smoke
+          npm run smoke:guide
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:

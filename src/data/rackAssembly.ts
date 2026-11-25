@@ -1,4 +1,4 @@
-import { clothesRack } from "./clothesRack"
+import { clothesRack, modelFrameSpacingMm } from "./clothesRack"
 
 function parts(...prefixes: string[]) {
   return clothesRack.placements
@@ -20,7 +20,12 @@ type RackStep = {
   highlight: string[]
   /** Parts already in place at this step; the rest are drawn as outlines. Omit to show everything. */
   installed?: string[]
+  diagram?: "nuts" | "height"
+  solidNodes?: Record<string, string>
 }
+
+// Both M4SlotNut nodes retain their original glTF name in userData.
+const preloadedNuts = Object.fromEntries(parts("shaft-support").map(id => [id, "M4SlotNut"]))
 
 export const rackAssembly: RackStep[] = [
   {
@@ -34,12 +39,16 @@ export const rackAssembly: RackStep[] = [
     detail: "挑出上框左右两根短梁，标出朝下的一面。每根底槽从端头滑入 2 只槽 6 M4 螺母，移到梁中部，留给一只支座。同一槽若还要装角码，按最终位置从远到近送入槽内件。按供货图在上下框和立柱相应槽内预放角码、下层板托及上层盖板托所需的槽内件。",
     check: "拿支座贴一次短梁，两孔都对同一底槽，孔距约 42 mm。把预留的 4 只螺母与角码用件分开确认，再合框。",
     highlight: parts("upper-short--1", "upper-short-1", "shaft-support"),
-    installed: parts("upper-short--1", "upper-short-1", "shaft-support"),
+    installed: parts("upper-short--1", "upper-short-1"),
+    solidNodes: preloadedNuts,
+    diagram: "nuts",
   },
   {
     title: "装脚杯，松装框架",
     detail: "认准立柱底端与脚杯匹配的 M6 地脚孔，先用手旋入四只脚杯，调到近似等高。平放拼起两个侧框，再由两人扶住，用长梁连接两侧。上下框各用两根长梁和两根短梁；按 V20 图安装上下框角码，先拧到连接能保持位置、仍可微调。",
-    check: "两根已留支座螺母的短梁都在顶部，槽口朝下；四根下梁齐高，下框角码给底板四角留出避让位置。",
+    check: `先核对供货图的下框高度。网页模型取上下横梁上表面相距 ${modelFrameSpacingMm} mm，原稿尺寸尚待确认。用卷尺从上框上表面向下量，在四根立柱分别贴标记，使下框上表面对齐标记，再复量四角。避开顶板厚度与脚杯调节量。`,
+    diagram: "height",
+    solidNodes: preloadedNuts,
     highlight: parts(
       "upright",
       "foot",
@@ -60,6 +69,7 @@ export const rackAssembly: RackStep[] = [
     check: "用底板边缘试靠板托，确认各承托面共面，板面设计高度与下框上表面齐平。紧固件的扭矩以对应配件说明为准。",
     highlight: parts("lower-long-clip", "lower-short-clip", "foot"),
     installed: [...frame, ...lowerClips],
+    solidNodes: preloadedNuts,
   },
   {
     title: "从架内落入嵌平底板",
@@ -67,6 +77,7 @@ export const rackAssembly: RackStep[] = [
     check: "逐角轻按，四角不翘，板边与下框齐平，各板托都实际接触板底。按随件说明完成板件固定。",
     highlight: ["lower-board", ...parts("lower-long-clip", "lower-short-clip")],
     installed: [...frame, ...lowerClips, "lower-board"],
+    solidNodes: preloadedNuts,
   },
   {
     title: "穿轴，托住组件装到梁下",

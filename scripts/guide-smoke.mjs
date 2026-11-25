@@ -94,6 +94,23 @@ const litMeshes = `(() => {
   return count
 })()`
 
+// Inspect the rendered materials, so a highlighted clamp cannot stand in for a nut.
+function rackSupportState(step) {
+  return `(() => {
+    const pieces = []
+    window.__ALUJOINT_FRAME__?.root.traverse(mesh => {
+      if (mesh.isMesh && /^(M4SlotNut|ShaftClamp$|M4MountScrew)/.test(mesh.name)) pieces.push(mesh)
+    })
+    const nuts = pieces.filter(mesh => mesh.name.startsWith("M4SlotNut"))
+    const mounts = pieces.filter(mesh => !nuts.includes(mesh))
+    const solid = mesh => [mesh.material].flat().every(m => m.opacity === 1 && !m.transparent)
+    const ghost = mesh => [mesh.material].flat().every(m => m.opacity < 1 && m.transparent)
+    const lit = mesh => [mesh.material].flat().every(m => m.emissiveIntensity > 0)
+    return nuts.length === 4 && mounts.length === 6 && nuts.every(solid) &&
+      (${step} !== 2 || nuts.every(lit)) && mounts.every(${step} < 6 ? ghost : solid)
+  })()`
+}
+
 try {
   await new Promise((resolve) => { ws.onopen = resolve })
   await send("Page.enable")
@@ -119,6 +136,12 @@ try {
     await backTo("/guide/beam-to-post")
   }
   await backTo("/guide")
+  await follow("/guide/panel")
+  await waitFor("document.querySelectorAll('.guide-option .assembly-diagram').length === 3", "三种板件截面")
+  await click("a[href='/case/clothes-rack#top-board']")
+  await waitFor("location.hash === '#top-board' && document.querySelector('#top-board')?.innerText.includes('装顶板')", "覆盖顶板案例落点")
+  await backTo("/guide/panel")
+  await backTo("/guide")
   await follow("/case/clothes-rack")
   await click("a[href='#bottom']")
   await waitFor("location.hash === '#bottom'", "底板锚点")
@@ -136,6 +159,7 @@ try {
       if (i > 1) await click(".step-nav button:last-child")
       await waitFor(`document.querySelector('.step-list li:nth-child(${i}).is-current')`, "衣架步骤 " + i)
       await waitFor(litMeshes + " > 0", "衣架零件高亮")
+      if (i >= 2 && i <= 6) await waitFor(rackSupportState(i), "衣架螺母及支座状态，第 " + i + " 步")
       if (i === 6) {
         const capture = await send("Page.captureScreenshot", { format: "png" })
         writeFileSync(join(runDir, `rack-shaft-${width}.png`), Buffer.from(capture.result.data, "base64"))

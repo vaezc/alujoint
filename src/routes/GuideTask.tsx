@@ -1,6 +1,7 @@
 import { ArrowLeft, ExternalLink } from "lucide-react"
 import { Link, useParams } from "react-router-dom"
 import { SiteHeader } from "../components/SiteHeader"
+import { AssemblyDiagram } from "../components/AssemblyDiagram"
 import { assembleSteps, guideTaskById } from "../data/guide"
 
 const fields: { key: "profile" | "machining" | "nutAfter" | "fastenerFrom" | "toolFrom"; label: string }[] = [
@@ -43,10 +44,10 @@ export function GuideTask() {
         </header>
         <ul className="guide-options">
           {task.options.map((option) => (
-            <li key={option.sampleId} className="guide-option">
+            <li key={option.label} className="guide-option">
               <div className="guide-option-head">
                 <h3>{option.label}</h3>
-                <span className={"guide-status " + (option.status === "已核对" ? "is-ok" : "is-todo")}>{option.status}</span>
+                <span className={"guide-status " + (option.status.endsWith("已核") ? "is-ok" : "is-todo")}>{option.status}</span>
               </div>
               {option.sampleId === "scene-side-tee" && <figure className="guide-example">
                 <img src="/guide/tpdf-install.png" alt="竖直的支接型材端部侧面开孔，T 型螺母装入下方水平贯通型材的顶槽。" />
@@ -59,8 +60,12 @@ export function GuideTask() {
                     <dd>{option[field.key]}</dd>
                   </div>
                 ))}
+                {option.evidence && <div className="guide-field"><dt>核对依据</dt><dd>{option.evidence}</dd></div>}
+                {option.pending && <div className="guide-field"><dt>动手前确认</dt><dd>{option.pending}</dd></div>}
               </dl>
+              {option.panel && <AssemblyDiagram kind={option.panel} />}
               <div className="guide-option-actions">
+                {option.sampleId === "clothes-rack" && <a className="ui-button" href={option.panel === "inset" ? "/case/clothes-rack#bottom" : "/case/clothes-rack#top-board"}>查看 V20 安装步骤</a>}
                 {assembleSteps[option.sampleId.replace(/^scene-/, "")] ? (
                   <Link className="ui-button" to={`/guide/step/${option.sampleId.replace(/^scene-/, "")}`}>
                     分步装配<ExternalLink aria-hidden="true" size={14} />

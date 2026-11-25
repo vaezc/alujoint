@@ -20,7 +20,7 @@ npm run build
 npm run preview
 ```
 
-`npm run build` 先跑 `tsc -b`，再把静态文件写到 `dist/`。托管时构建命令用 `npm run build`，发布目录用 `dist`。仓库里有 `wrangler.toml`（Cloudflare Pages，项目名 `alujoint`）和 `.node-version`（Node 22），尚未实际部署。
+`main` 由 GitHub Actions 自动发布到 Cloudflare Pages 项目 `alujoint`。工作流按 `.node-version` 安装 Node，构建 `dist/`，启动生产预览并运行模型库和搭建指南两套浏览器检查，全部通过后再部署。每次发布结果见 [部署记录](https://github.com/vaezc/alujoint/actions/workflows/deploy-pages.yml)。
 
 ## 网格
 

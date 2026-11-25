@@ -7,6 +7,7 @@ import { sampleHasExplode, samples } from "../data/catalog"
 import { assembleSteps } from "../data/guide"
 import { clothesRack } from "../data/clothesRack"
 import { rackAssembly } from "../data/rackAssembly"
+import { AssemblyDiagram } from "../components/AssemblyDiagram"
 
 const stepJoints = ["corner", "end-to-end", "side-tee"]
 
@@ -43,6 +44,7 @@ function AssembleView({ jointId }: { jointId?: string }) {
   const step = steps[safeIndex]
   const selection: Selection[] = step.highlight.map((id) => ({ placementId: id, nodeName: "*" }))
   const installed = isRack ? rackAssembly[safeIndex].installed : undefined
+  const diagram = isRack ? rackAssembly[safeIndex].diagram : undefined
   const ghosted = installed ? new Set(sample.placements.map(({ id }) => id).filter((id) => !installed.includes(id))) : undefined
   const labels = step.highlight.map((id) => sample.placements.find((p) => p.id === id)?.label ?? id)
   const canExplode = sampleHasExplode(sample)
@@ -77,6 +79,7 @@ function AssembleView({ jointId }: { jointId?: string }) {
             showExplodeLabels={explode > 0.18}
             selection={selection}
             ghosted={ghosted}
+            solidNodes={isRack ? rackAssembly[safeIndex].solidNodes : undefined}
             frameToken={frameToken}
             onSelect={() => {}}
             onBounds={() => {}}
@@ -117,6 +120,7 @@ function AssembleView({ jointId }: { jointId?: string }) {
           <div className="step-detail">
             <p className="step-detail-title">{isRack && `${safeIndex + 1} / ${steps.length}　`}{step.title}</p>
             <p>{step.detail}</p>
+            {diagram && <AssemblyDiagram kind={diagram} />}
             {isRack ? <p className="step-hint"><strong>检查</strong>　{rackAssembly[safeIndex].check}</p> : <p className="step-hint">本步高亮：{labels.join("、")}</p>}
             {ghosted && ghosted.size > 0 ? <p className="step-ghost-hint">灰色轮廓是这一步还没装的零件。</p> : null}
           </div>

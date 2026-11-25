@@ -2,7 +2,7 @@
 // 说明尽量沿用 src/data/connections.ts 里各连接的定义和 note；
 // 官方图档 / 适配没有逐点核对的字段统一标「待核对」，不要写死。
 
-export type GuideStatus = "已核对" | "待核对"
+export type GuideStatus = "图示方向已核" | "案例用料已核" | "教学组合" | "待核对"
 
 export type ConnectionOption = {
   /** 对应 connections.ts / catalog.ts 里真实样品的 id */
@@ -19,6 +19,9 @@ export type ConnectionOption = {
   /** 工具从哪一面进入 */
   toolFrom: string
   status: GuideStatus
+  evidence?: string
+  pending?: string
+  panel?: "inset" | "cover" | "slot"
   /** 官方图档（PDF）或使用示例入口 */
   drawing?: string
   /** 图档来源标签，默认「官方图档」 */
@@ -60,7 +63,9 @@ export const guideTasks: GuideTask[] = [
         nutAfter: "先将 T 型螺母从贯通型材开放的槽端送到接头位置。",
         fastenerFrom: "将连接件放入支接型材侧孔，螺钉沿支接杆轴向穿过连接件，拧入贯通杆槽内的螺母。",
         toolFrom: "在支接侧的连接件开口处给内六角留出操作空间。",
-        status: "待核对",
+        status: "图示方向已核",
+        evidence: "嘉立创 TPDF 使用示例标出支接杆侧孔和贯通杆槽内的 TPAA 螺母。",
+        pending: "加工前用所购连接件版本核对侧孔直径、深度和距端面的位置；网页未做实物试配。",
         drawing: "https://static.jlcfa.com/Serial/T02/TPDF/311673618140880898.pdf",
       },
       {
@@ -78,11 +83,15 @@ export const guideTasks: GuideTask[] = [
         sampleId: "scene-corner",
         label: "角部角码（角座，教学组）",
         profile: P20,
-        machining: "教学示意，未按官方套件核对孔位和攻丝。",
+        machining: "本示例靠角码、螺钉和槽内螺母固定两根杆，直接利用两侧已有的槽。所购套件如有附加工要求，以该型号图为准。",
         nutAfter: "示意图中 T 型螺母从槽端滑入，能否后装待核对。",
         fastenerFrom: "从外侧穿螺钉。",
         toolFrom: "外侧内六角。",
-        status: "待核对",
+        status: "教学组合",
+        evidence: "角座示例使用 H6 本体、EDLA 螺钉和独立垫圈模型。现场 V20 使用套装内的压铸角码。",
+        pending: "按所购角码核对孔距、定位凸缘、螺钉长度和封槽后装入条件。",
+        drawing: "https://static.jlcfa.com/Serial/T02/TYZC/595874960008077314.pdf",
+        drawingLabel: "TYZC 角座选型图",
       },
     ],
   },
@@ -136,14 +145,35 @@ export const guideTasks: GuideTask[] = [
   {
     id: "panel",
     title: "安装板件",
-    summary: "把面板、封板固定到型材槽口上。",
+    summary: "按板与框的位置选择：底板嵌平、顶板覆盖，或面板边缘固定在槽口。",
     options: [
       {
+        panel: "inset", sampleId: "clothes-rack", label: "嵌平底板 · 12 mm 板托",
+        profile: "V20 的 2020 框架与 858 × 378 × 12 mm 四角避让底板。",
+        machining: "按板形加工四角避让；下框内侧装板托，使板面与框面齐平。",
+        nutAfter: "合框前预装板托所需槽内件。", fastenerFrom: "在下框内侧固定板托，再落板。",
+        toolFrom: "落板前从框内操作。", status: "案例用料已核",
+        evidence: "V20 套装清单列 12 mm 板托 10 件，模型按设计板形展示。",
+        pending: "板托实际孔位、固定件规格和四角间隙按随件图试装核对。",
+      },
+      {
+        panel: "cover", sampleId: "clothes-rack", label: "覆盖顶板 · 2020 盖板托",
+        profile: "V20 的 2020 上框与 900 × 420 × 12 mm 整板。",
+        machining: "顶板覆盖上框。板上固定孔的位置、深度按随件图核对。",
+        nutAfter: "上框封口前预装盖板托所需槽内件。", fastenerFrom: "按随件图装盖板托；光轴组件就位后再放顶板。",
+        toolFrom: "放板前确认框内仍可接近托件紧固处。", status: "案例用料已核",
+        evidence: "V20 套装清单列 2020 盖板托 10 件，板件为覆盖式顶板。",
+        pending: "盖板托实际固定方向、板孔及螺钉长度需按到货配件确认。",
+      },
+      {
+        panel: "slot",
         sampleId: "scene-panel-corner",
         label: "面板角槽连接件（TPCT-206）",
         profile: P20,
         machining: "面板厚度和槽深没有在目录里建模，需按实际板厚核对。",
-        nutAfter: "待核对：GLB 是 4 颗紧定螺钉，官方图档写 2 颗 M5。",
+        nutAfter: "此示例用紧定螺钉；封框后能否插入连接件取决于槽端和板边的装入空间。",
+        evidence: "TPCT 型号图与零件网格均可查看，零件数量记录有出入。",
+        pending: "网页网格有 4 颗紧定螺钉，图档列 2 颗 M5。按采购型号确认数量、板厚和装入方向。",
         fastenerFrom: "从外侧拧紧定螺钉夹住面板。",
         toolFrom: "外侧内六角。",
         status: "待核对",
@@ -165,6 +195,8 @@ export const guideTasks: GuideTask[] = [
         fastenerFrom: "板面外侧四颗螺钉。",
         toolFrom: "板面外侧。",
         status: "待核对",
+        evidence: "自建教学板仅引用外置板的连接原理。",
+        pending: "购置现成连接板时，逐孔核对槽中心线、孔距与紧固件尺寸。",
         drawing: "https://resources.ooznest.co.uk/aluminium-extrusion-system/connectors/plate-connectors/45-degree-plate-connectors/",
         drawingLabel: "自建参考（Ooznest 原理）",
       },

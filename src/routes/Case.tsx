@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom"
 import { SiteHeader } from "../components/SiteHeader"
 import { clothesRack } from "../data/clothesRack"
 import { rackAssembly } from "../data/rackAssembly"
+import { AssemblyDiagram } from "../components/AssemblyDiagram"
 
 const assemblyText = [
   "V20 衣架装配清单",
@@ -132,11 +133,12 @@ export function Case() {
           <Link to="/guide/step/clothes-rack">逐步查看 3D 位置</Link>
           <ol className="case-steps">
             {rackAssembly.map((step, index) => (
-              <li key={step.title}>
+              <li key={step.title} id={index === rackAssembly.length - 1 ? "top-board" : undefined}>
                 <span className="case-step-index">{index + 1}</span>
                 <div>
                   <p className="case-step-title">{step.title}</p>
                   <p>{step.detail}</p>
+                  {step.diagram && <AssemblyDiagram kind={step.diagram} />}
                   <p><strong>检查</strong>　{step.check}</p>
                 </div>
               </li>

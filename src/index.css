@@ -549,6 +549,10 @@ button:not(:disabled, [aria-disabled="true"]), summary {
 .case-table-wrap { max-inline-size: 100%; overflow-x: auto; }
 .rack-step-index { margin-block-start: 1rem; }
 .rack-step-index summary { padding-block: .5rem; cursor: pointer; }
+.assembly-diagram { max-width: 30rem; margin: .8rem 0; padding: .6rem; background: #faf8f1; border: 1px solid var(--line); border-radius: var(--radius); }
+.assembly-diagram svg { display: block; width: 100%; height: auto; }
+.assembly-diagram text { font-size: 13px; fill: var(--ink); }
+.assembly-diagram figcaption { font-size: .8rem; line-height: 1.55; color: var(--muted); }
 #assembly > p, #assembly > a { display: block; margin-block-end: 1rem; }
 @media (width < 36rem) {
   .case-table { min-inline-size: 28rem; }
