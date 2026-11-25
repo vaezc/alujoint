@@ -22,6 +22,8 @@ npm run preview
 
 `main` 由 GitHub Actions 自动发布到 Cloudflare Pages 项目 `alujoint`。工作流按 `.node-version` 安装 Node，构建 `dist/`，启动生产预览并运行模型库和搭建指南两套浏览器检查，全部通过后再部署。每次发布结果见 [部署记录](https://github.com/vaezc/alujoint/actions/workflows/deploy-pages.yml)。
 
+2026-11-25 核对了 `main` 提交 `876a7e0` 的发布，构建、两套浏览器检查和部署均通过。[GitHub Actions 记录](https://github.com/vaezc/alujoint/actions/runs/45522308552) · [Cloudflare Pages 站点](https://alujoint.pages.dev/)
+
 ## 网格
 
 `public/models/` 里的厂商模型主要来自已下载的 STEP，用 cascadio 0.1.1 三角化后按 glTF 的米制写出。出处记在 `sources/`。自建的四孔板存为 `teaching-plate-45.glb`。
@@ -31,7 +33,7 @@ npm run preview
 - `TPAA-D-6-M4.glb`、`TPAA-D-6-M5.glb`：镀锌碳钢 T 形螺母，外廓 10 × 4.5 × 6 mm。不是角座清单里的镀镍 TPAA-N。孔是简化圆柱。记录在 `sources/batch2/`。
 - `TPDH.glb`：TPDH-206-T-ZP 装配。NAUO1 是本体，NAUO2–4 是三颗 EDLG-S1-M6-L12。合拢包围盒 31 × 31 × 31 mm。
 
-角部连接的位置和爆炸方向写在 `src/data/joint.ts`。两根型材、H6 角座、EDLA、镀锌 TPAA-D、平垫和弹垫靠在角上，沿安装方向分开。这不是 ZP 清单：螺母不是镀镍 N，螺钉不是图上的 EDLG，角座不是 X6 带盖。盖板没有网格。M5 的 T 形螺栓单独在目录里。弹垫按网格显示为 0.9 mm 的平面开口环。
+角部连接的位置和爆炸方向写在 `src/data/joint.ts`。两根型材、H6 DZ 角座本体、`EDLA-S1-M4-L10` 螺钉、镀镍 `TPAA-N-6-M4` 螺母、平垫和弹垫沿安装方向分开。场景为教学组合，盖板尚无网格。镀锌 TPAA-D 和 M5 T 形螺栓作为独立条目展示。弹垫按网格显示为 0.9 mm 的平面开口环。
 
 - `EDLA-S1-M4-L10.glb`：圆柱头 M4×10，网格 14 × 7 × 7 mm，轴沿文件 X。
 - `EPDA-S1W-K-4.glb`：平垫 12 × 12 × 1 mm，孔轴沿文件 Z。
@@ -40,21 +42,23 @@ npm run preview
 
 ## 页面上能做的事
 
-左侧检索和筛选，点一条就载入视图；视图按需加载对应 GLB。拖拽旋转，右键平移，滚轮缩放。取景和复位在视图下方，也可以按 `F` 和 `R`。端面连接件可以按 NAUO 点选，并用滑杆把三颗螺钉沿实例轴拉开。抓取目录的条目没有节点名，点选只能到整件。
+左侧检索和筛选，点一条就按需载入对应 GLB。拖拽旋转，右键平移，滚轮缩放。取景和复位在视图下方，也可以按 `F` 和 `R`。`TPDH-206-T-ZP` 样品可以按 NAUO 点选，并用滑杆把三颗螺钉沿实例轴拉开。未配置零件实例的抓取条目支持整件点选。
 
-连接方式目录包含 12 种：角码、端面 L 形（TPDH-B，两颗沉头螺钉）、内置端面贴侧面、角槽、槽内一字延长、三向端面立体角、135° 挤压角码、45° 型材连接板（TPDD）、三维连接件（TPDJ），以及面板角槽和弹性连接件的单件展示。角码和 45° 外置板已换用官方清单里的 TPAA-N 螺母；面板角槽缺面板网格、弹性连接件只适用 2020D/2020E，因此这两项只展示连接件本体，没有做型材装配。
+连接方式目录包含 **12 种展示**。装配示意包括角码、端面 L 形（`TPDH-206-B-ZP`，两颗沉头螺钉）、内置端面贴侧面（TPDF）、角槽（TPDG）、槽内一字延长（TPLH）、自建 45° 外置教学板、三向端面立体角（TPDH-T）、135° 挤压角码（TPDC）、45° 型材连接板（`TPDD-206-2020A-ZP`）和三维连接件（TPDJ）。角码与自建教学板均用 `TPAA-N-6-M4`。面板角槽（TPCT）缺面板网格，弹性连接件（TPDS）适用 2020D/2020E，这两项当前为单件展示。
 
-## 当前进度与交接（2026-11-17）
+## 搭建指南与 V20 案例
 
-目标：把嘉立创欧标铝型材全系列的型材与连接件做成 3D 可视化目录。这一步做的是「抓取 → STEP → GLB → 数据」管线，前端已接入抓取目录。
+搭建指南按横梁接立柱、型材接长、三向连接、安装板件和增加斜撑组织，共五个任务、13 条候选说明。角码、TPDH 端面 L 形、TPDF 内置端面贴侧面各有一套分步装配。V20 衣架案例提供结构、切料、板件、购物车、加工核对项和离线清单下载。[搭建指南](https://alujoint.pages.dev/guide) · [V20 衣架案例](https://alujoint.pages.dev/case/clothes-rack) · [八步 3D 装配](https://alujoint.pages.dev/guide/step/clothes-rack)
 
-### 已完成
+网页功能已交付并部署。指南有 9 条候选仍标「待核对」。V20 的配件、孔位及装配配合还需对照原稿、供方图和实物，整架承载、侧摆、抗倾覆和真人读者验收仍待完成。[实施报告](REPORT.md) · [交接进度](docs/交接进度.md)
 
-- 枚举「铝型材及配件」12 大类 / 108 子分类，得到 **407 个产品系列**（serial）。
+## 目录与模型（2026-11-25）
+
+- 枚举「铝型材及配件」的 108 个列表页，覆盖 12 个大类和 96 个子分类，得到 **407 个产品系列**（serial）。
 - 407 个系列里 **407 个都有模型**。TDB21 的 STEP 始终不出 `built_file`，改用站点 STL 补齐。
 - 转换：403 个 STEP 用 cascadio 0.1.1 转 GLB，另外 4 个（`LC-AEG15-5065-XL90`、`TDB127`、`TDB128`、`TDB21`）改用站点导出的 STL 转 GLB。
-- 生成 `src/data/catalog.generated.json`（407 条，含分类 / 型号 / 包围盒 / 网格数）。前端接入 406 条；`TXCJ-H6-2020-L100` 与手写样品重复，保留手写那条。
-- meshopt 压缩：`public/models/` 全部 **423 个 GLB，现共 38.8MB**（最初 415 个从 142.2MB 压到 38.7MB，后补的 8 个另行补压）。
+- `src/data/catalog.generated.json` 有 407 条。前端保留手写的 `TXCJ-H6-2020-L100`，去除同型号的抓取条目。目录共 **428 条**，由 406 条抓取条目、9 个手写样品、12 种连接展示和 1 套 V20 衣架组成。
+- `public/models/` 共 **424 个 GLB**，合计约 38.8 MB。423 个带 `EXT_meshopt_compression`，`public/models/rack-inset-board.glb` 尚未做 meshopt 压缩。
 
 ### 下载 STEP 的接口链路
 
@@ -96,11 +100,11 @@ npm run preview
 ### 已知问题 / 待办
 
 - **4 个 STL 兜底**：XL90、TDB127、TDB128 的 STEP 在 cascadio 和 OCP 里都会挂住（最好一次跑了 15 分钟无输出）；TDB21 是 STEP 请求始终没有 `built_file`。四件都改用站点 STL，记录在 `glb_meta.jsonl` 的 `note` 里。STL 没有 STEP 的装配层级。
-- **前端接入已完成**（2026-11-17）：`CatalogList` / `Viewport` 读 `src/data/catalog.generated.json`，GLB 按需加载，不再固定预加载 9 个文件；抓取条目没有节点名，只能整件点选。
-- **压缩已完成**：meshopt，`npm run compress:models` 可重跑；drei 自带解码器。
+- **抓取目录**提供包围盒和网格数，尚未逐件对照官方图档。
+- **压缩**可用 `npm run compress:models` 重跑。drei 自带 meshopt 解码器。
 - **爆炸视图**：TPDH、TPDF、TPDG 和 TPLH 按 GLB 的零件实例分解。已记录方向的套件在 `src/data/connections.ts` 中配置，其余批量模型以原始姿态展示。TPDF 场景保留预装间隙，所需的型材加工尚未建模。
 
 ### 注意
 
 - 抓取依赖登录态，且站点 `robots.txt` 禁 `/api/` 和 `?` 参数；仅个人研究用途。cookie 是敏感凭据，不提交、不外传。
-- 按 `docs/工作约定.md`：只推 `github.com/vaezc/alujoint`，不 force-push。本次仅本地提交，未推送。
+- 仓库提交与发布约定见 [工作约定](docs/工作约定.md)。
